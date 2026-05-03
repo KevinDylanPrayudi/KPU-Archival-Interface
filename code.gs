@@ -22,8 +22,7 @@ function showSidebar() {
 function getArsipPageInitializationData() {
   return {
     arsip: getArsipData(),
-    klasifikasi: getKlasifikasiData(),
-    retensi: getRetensiData()
+    klasifikasi: getKlasifikasiData()
   };
 }
 
@@ -131,60 +130,24 @@ function deleteKlasifikasiRow(row) {
 }
 
 // ==========================================
-// ARSIP: RETENTION DATE HELPER
-// ==========================================
-function calculateRetentionData_(retensiCat, dateCreatedStr) {
-  if (!retensiCat || !dateCreatedStr) return { expDate: "-", daysLeft: "-" };
-  var retensiSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Retensi");
-  var retData = retensiSheet.getDataRange().getValues();
-  var period = 0;
-  for(var i = 1; i < retData.length; i++) {
-    if(retData[i][0] == retensiCat) { period = parseInt(retData[i][1]) || 0; break; }
-  }
-  if(period === 0) return { expDate: "-", daysLeft: "-" };
-  
-  var d = new Date(dateCreatedStr);
-  if (isNaN(d.getTime())) return { expDate: "-", daysLeft: "-" };
-  
-  d.setFullYear(d.getFullYear() + period);
-  var expDate = Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
-  
-  var now = new Date();
-  now.setHours(0,0,0,0); d.setHours(0,0,0,0);
-  var diffDays = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  var daysLeft = diffDays <= 0 ? Math.abs(diffDays) + " Hari Terlewat" : diffDays + " Hari Lagi";
-  
-  return { expDate: expDate, daysLeft: daysLeft };
-}
-
-// ==========================================
 // ARSIP MODULE FUNCTIONS 
 // ==========================================
 function getArsipData() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Arsip");
-  var retensiSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Retensi");
-
-  var retensiData = retensiSheet.getDataRange().getValues().slice(1);
-  var retensiMap = {};
-  retensiData.forEach(row => { if (row[0]) retensiMap[row[0].toString().trim()] = { action: row[2] }; });
+  if (sheet.getRange(1, 18).getValue() === "") {
+    sheet.getRange(1, 18).setValue("Physical Page")
+  }
 
   var rawData = sheet.getDataRange().getValues().slice(1);
   var formattedData = formatRawData(rawData);
 
   return formattedData.map((value, index) => {
-    let retensiCat = value[17] || ""; 
-    let action = retensiCat && retensiMap[retensiCat] ? retensiMap[retensiCat].action : "-";
-    let daysLeft = value[19] || "-"; 
-    let isExpired = daysLeft.toString().includes("Terlewat");
-
     return {
       rowId: index + 2, recordId: value[0], title: value[1], businessActivity: value[2],
       creator: value[3], unit: value[4], dateCreated: value[5], dateReceived: value[6], 
       recordType: value[7], confLevel: value[8], storageLoc: value[9], format: value[10], 
       status: value[11], pageCount: value[12] || "", box: value[13] || "", rack: value[14] || "",
-      modifiedBy: value[15] || "", modifiedAt: value[16] || "", retensiCategory: retensiCat, 
-      expirationDate: value[18] || "-", daysLeft: daysLeft, retensiAction: action, isExpired: isExpired,
-      physicalPage: value[20] || "" // <-- GRABS COLUMN U (21st Column)
+      modifiedBy: value[15] || "", modifiedAt: value[16] || "", physicalPage: value[20] || ""
     }
   });
 }
@@ -192,11 +155,11 @@ function getArsipData() {
 function processArsipForm(dataObj) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Arsip");
   
-  // Failsafe: Ensure 21 columns exist
+  // Failsafe: Ensure 18 columns exist
   var maxCols = sheet.getMaxColumns();
-  if (maxCols < 21) {
-    sheet.insertColumnsAfter(maxCols, 21 - maxCols);
-    sheet.getRange(1, 21).setValue("Nomor Halaman Fisik").setFontWeight("bold");
+  if (maxCols < 18) {
+    sheet.insertColumnsAfter(maxCols, 18 - maxCols);
+    sheet.getRange(1, 18).setValue("Nomor Halaman Fisik").setFontWeight("bold");
   }
 
   var cleanRecordId = dataObj.recordId.toString().trim().toUpperCase();
@@ -238,15 +201,12 @@ function processArsipForm(dataObj) {
 
   var currentUser = Session.getActiveUser().getEmail() || "System User";
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
-  var retInfo = calculateRetentionData_(dataObj.retensiCategory, dataObj.dateCreated);
 
-  // SAVES EXACTLY 21 ITEMS IN PERFECT ALIGNMENT
   sheet.appendRow([
     cleanRecordId, dataObj.title, dataObj.businessActivity, dataObj.creator, dataObj.unit, 
     dataObj.dateCreated, dataObj.dateReceived, dataObj.recordType, dataObj.confLevel, 
     uploadedFileUrl, dataObj.format, dataObj.status, dataObj.pageCount || "", dataObj.box || "", 
-    dataObj.rack || "", currentUser, timestamp, dataObj.retensiCategory || "", 
-    retInfo.expDate, retInfo.daysLeft, dataObj.physicalPage || ""
+    dataObj.rack || "", currentUser, timestamp, dataObj.physicalPage || ""
   ]);
   
   return { success: true, message: "Success! Record saved." };
@@ -256,9 +216,9 @@ function editArsipForm(dataObj, row) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Arsip");
   
   var maxCols = sheet.getMaxColumns();
-  if (maxCols < 21) {
-    sheet.insertColumnsAfter(maxCols, 21 - maxCols);
-    sheet.getRange(1, 21).setValue("Nomor Halaman Fisik").setFontWeight("bold");
+  if (maxCols < 18) {
+    sheet.insertColumnsAfter(maxCols, 18 - maxCols);
+    sheet.getRange(1, 18).setValue("Physical Page");
   }
 
   const cleanRecordId = dataObj.recordId.toString().trim().toUpperCase();
@@ -331,16 +291,13 @@ function editArsipForm(dataObj, row) {
 
   var currentUser = Session.getActiveUser().getEmail() || "System User";
   var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
-  var retInfo = calculateRetentionData_(dataObj.retensiCategory, dataObj.dateCreated);
-
-  // UPDATES EXACTLY 21 ITEMS IN PERFECT ALIGNMENT
-  const range = sheet.getRange(row, 1, 1, 21);
+  
+  const range = sheet.getRange(row, 1, 1, 18);
   range.setValues([[
     cleanRecordId, dataObj.title, dataObj.businessActivity, dataObj.creator, dataObj.unit, 
     dataObj.dateCreated, dataObj.dateReceived, dataObj.recordType, dataObj.confLevel, 
     finalFileUrl, dataObj.format, dataObj.status, dataObj.pageCount || "", dataObj.box || "", 
-    dataObj.rack || "", currentUser, timestamp, dataObj.retensiCategory || "",
-    retInfo.expDate, retInfo.daysLeft, dataObj.physicalPage || "" 
+    dataObj.rack || "", currentUser, timestamp, dataObj.physicalPage || "" 
   ]]);
   
   return { success: true, message: "Success! Updated Arsip Record." };
@@ -356,68 +313,6 @@ function deleteArsipRow(row) {
     } catch (e) {}
   }
   sheet.deleteRow(row);
-  return "Success!";
-}
-
-// ==========================================
-// NEW: NIGHTLY DAYS LEFT UPDATER (CRON JOB)
-// ==========================================
-function updateDaysLeftDaily() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Arsip");
-  var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return; 
-  
-  var now = new Date();
-  now.setHours(0,0,0,0);
-  
-  var daysLeftColumn = [];
-  daysLeftColumn.push([data[0][19]]); 
-  
-  for (var i = 1; i < data.length; i++) {
-    var expDateStr = data[i][18]; 
-    if (!expDateStr || expDateStr === "-") {
-      daysLeftColumn.push(["-"]);
-      continue;
-    }
-    var d = new Date(expDateStr);
-    if (isNaN(d.getTime())) {
-      daysLeftColumn.push(["-"]);
-      continue;
-    }
-    d.setHours(0,0,0,0);
-    var diffTime = d.getTime() - now.getTime();
-    var diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    var daysLeftStr = diffDays <= 0 ? Math.abs(diffDays) + " Hari Terlewat" : diffDays + " Hari Lagi";
-    daysLeftColumn.push([daysLeftStr]);
-  }
-  
-  sheet.getRange(1, 20, daysLeftColumn.length, 1).setValues(daysLeftColumn);
-}
-
-// ==========================================
-// RETENSI MODULE FUNCTIONS
-// ==========================================
-function getRetensiData() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Retensi");
-  var rawData = sheet.getDataRange().getValues().slice(1);
-  return formatRawData(rawData).map((value, index) => {
-    return { rowId : index + 2, category: value[0], period: value[1], action: value[2], legalBasis: value[3] }
-  });
-}
-
-function processRetensiForm(dataObj) {
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Retensi").appendRow([dataObj.category, dataObj.period, dataObj.action, dataObj.legalBasis]);
-  return "Success!";
-}
-
-function editRetensiForm(dataObj, row) {
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Retensi").getRange(row, 1, 1, 4).setValues([[dataObj.category, dataObj.period, dataObj.action, dataObj.legalBasis]]);
-  return "Success!";
-}
-
-function deleteRetensiRow(row) {
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Retensi").deleteRow(row);
   return "Success!";
 }
 
