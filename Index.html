@@ -75,6 +75,7 @@
     dialog::backdrop { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); }
     dialog h3 { margin-bottom: 15px; color: #0f172a; }
     .modal-input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: 'Inter'; font-size: 14px; box-sizing: border-box; }
+    .autocomplete-item { padding: 10px 12px; cursor: pointer; font-size: 14px; color: #334155; border-bottom: 1px solid #f1f5f9; white-space: normal; line-height: 1.5; }
     .modal-input:focus, select:focus { outline: none; border-color: #3b82f6; }
     .modal-input[readonly] { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
@@ -228,7 +229,6 @@
         <div class="nav-item active" onclick="navigate('pegawai', this)" title="Pegawai"><span class="material-icons">people</span> <span class="nav-text">Pegawai</span></div>
         <div class="nav-item" onclick="navigate('arsip', this)" title="Arsip"><span class="material-icons">folder</span> <span class="nav-text">Arsip</span></div>
         <div class="nav-item" onclick="navigate('klasifikasi', this)" title="Klasifikasi"><span class="material-icons">category</span> <span class="nav-text">Klasifikasi</span></div>
-        <div class="nav-item" onclick="navigate('retensi', this)" title="Retensi"><span class="material-icons">history</span> <span class="nav-text">Retensi</span></div>
         <div class="nav-item" onclick="navigate('tempatFisik', this)" title="Tempat Fisik"><span class="material-icons">inventory_2</span> <span class="nav-text">Tempat Fisik</span></div>
       </div>
     </aside>
@@ -335,7 +335,18 @@
       <div class="form-group"><label>ID Rekaman</label><input type="text" id="a_recordId" class="modal-input" placeholder="Wajib Diisi" oninput="clearFieldError(this)"><span id="err_a_recordId" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Tanggal Diterima</label><input type="date" id="a_dateReceived" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_dateReceived" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group full-width"><label>Judul Dokumen</label><input type="text" id="a_title" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_title" class="field-error">Kolom ini wajib diisi</span></div>
-      <div class="form-group full-width"><label>Klasifikasi Arsip</label><select id="a_businessActivity" class="modal-input" onchange="clearFieldError(this)"><option value="">Loading...</option></select><span id="err_a_businessActivity" class="field-error">Kolom ini wajib diisi</span></div>
+      <div class="form-group full-width">
+        <label>Klasifikasi Arsip</label>
+        <div class="autocomplete-wrapper" onclick="showAutocomplete('klasList_a'); document.getElementById('a_businessActivity_btn').classList.remove('error-border'); document.getElementById('err_a_businessActivity').style.display='none';">
+          <input type="hidden" id="a_businessActivity">
+          <div id="a_businessActivity_btn" class="modal-input" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+             <span id="a_businessActivity_text" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-- Pilih Klasifikasi --</span>
+             <span class="material-icons" style="font-size:18px; color:#64748b;">expand_more</span>
+          </div>
+          <div id="klasList_a" class="autocomplete-list"></div>
+        </div>
+        <span id="err_a_businessActivity" class="field-error">Kolom ini wajib diisi</span>
+      </div>
       <div class="form-group"><label>Unit Pencipta</label><input type="text" id="a_creator" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_creator" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Unit Pengolah</label><input type="text" id="a_unit" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_unit" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="a_dateCreated" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_dateCreated" class="field-error">Kolom ini wajib diisi</span></div>
@@ -377,7 +388,6 @@
       </div>
       
       <div class="form-group"><label>Status</label><select id="a_status" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Active">Aktif</option><option value="Inactive">Inaktif</option><option value="Archive">Arsip</option></select><span id="err_a_status" class="field-error">Kolom ini wajib diisi</span></div>
-      <div class="form-group"><label>Kategori JRA (Opsional)</label><select id="a_retensiCategory" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Gunakan JRA --</option></select></div>
     </div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('addArsipModal')">Batal</button><button class="btn-primary" id="addArsipBtn" onclick="submitArsipData()">Simpan Rekaman</button></div>
   </dialog>
@@ -389,7 +399,17 @@
       <div class="form-group"><label>ID Rekaman</label><input type="text" id="e_recordId" class="modal-input" readonly></div>
       <div class="form-group"><label>Tanggal Diterima</label><input type="date" id="e_dateReceived" class="modal-input"></div>
       <div class="form-group full-width"><label>Judul Dokumen</label><input type="text" id="e_title" class="modal-input"></div>
-      <div class="form-group full-width"><label>Klasifikasi Arsip</label><select id="e_businessActivity" class="modal-input"></select></div>
+      <div class="form-group full-width">
+        <label>Klasifikasi Arsip</label>
+        <div class="autocomplete-wrapper" onclick="showAutocomplete('klasList_e'); document.getElementById('e_businessActivity_btn').classList.remove('error-border');">
+          <input type="hidden" id="e_businessActivity">
+          <div id="e_businessActivity_btn" class="modal-input" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+             <span id="e_businessActivity_text" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-- Pilih Klasifikasi --</span>
+             <span class="material-icons" style="font-size:18px; color:#64748b;">expand_more</span>
+          </div>
+          <div id="klasList_e" class="autocomplete-list"></div>
+        </div>
+      </div>
       <div class="form-group"><label>Unit Pencipta</label><input type="text" id="e_creator" class="modal-input"></div>
       <div class="form-group"><label>Unit Pengolah</label><input type="text" id="e_unit" class="modal-input"></div>
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="e_dateCreated" class="modal-input"></div>
@@ -431,7 +451,6 @@
       </div>
       
       <div class="form-group"><label>Status</label><select id="e_status"><option value="Active">Aktif</option><option value="Inactive">Inaktif</option><option value="Archive">Statis (Arsip)</option></select></div>
-      <div class="form-group"><label>Kategori JRA</label><select id="e_retensiCategory" class="modal-input" onchange="clearFieldError(this)"></select></div>
     </div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('editArsipModal')">Batal</button><button class="btn-save" id="saveArsipBtn" onclick="saveArsipData()">Simpan Perubahan</button></div>
   </dialog>
@@ -646,9 +665,7 @@
     // ==========================================
     let masterPegawaiData = [];
     let masterKlasifikasiData = [];
-    let masterRetensiData = [];
-    let masterArsipData = []; 
-    let retensiDict = {};
+    let masterArsipData = [];
 
     function toggleProfileMenu() { document.getElementById('profileDropdown').classList.toggle('show'); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
@@ -666,7 +683,6 @@
       if (pageName === 'pegawai') loadPegawaiPage();
       else if (pageName === 'klasifikasi') loadKlasifikasiPage();
       else if (pageName === 'arsip') loadArsipPage();
-      else if (pageName === 'retensi') loadRetensiPage(); 
       else if (pageName === 'tempatFisik') loadTempatFisikPage();
     }
 
@@ -754,6 +770,13 @@
         document.querySelectorAll('.autocomplete-list').forEach(el => el.style.display = 'none');
       }
     });
+
+    function selectKlasifikasi(hiddenId, kode, fullText, listId) {
+      document.getElementById(hiddenId).value = kode;
+      document.getElementById(hiddenId + '_text').innerText = fullText;
+      document.getElementById(listId).style.display = 'none';
+      if(event) event.stopPropagation(); // Mencegah dropdown terbuka dua kali
+    }
 
     // ==========================================
     // MODULE: PEGAWAI
@@ -924,7 +947,8 @@
         if (!filter || row.kode.toLowerCase().includes(filter) || row.nama.toLowerCase().includes(filter)) {
           let d = JSON.stringify(row).replace(/"/g, '&quot;'); 
           let folderBtn = row.folderLink ? `<a href="${row.folderLink}" target="_blank"><span class="material-icons">folder</span></a>` : "-"; 
-          html += `<tr><td style="font-weight: 600;">${row.kode}</td><td>${row.nama}</td><td>${folderBtn}</td><td class="sticky-col"><button class="btn-icon edit" onclick="openKlasifikasiModal(${d})"><span class="material-icons">edit</span></button> <button class="btn-icon delete" onclick="triggerDeleteKlasifikasiModal('${row.rowId}')"><span class="material-icons">delete</span></button></td></tr>`; 
+          // ADDED: white-space: normal; min-width: 200px; max-width: 400px; line-height: 1.5; to the Nama column
+          html += `<tr><td style="font-weight: 600;">${row.kode}</td><td style="white-space: normal; min-width: 200px; max-width: 400px; line-height: 1.5;">${row.nama}</td><td>${folderBtn}</td><td class="sticky-col"><button class="btn-icon edit" onclick="openKlasifikasiModal(${d})"><span class="material-icons">edit</span></button> <button class="btn-icon delete" onclick="triggerDeleteKlasifikasiModal('${row.rowId}')"><span class="material-icons">delete</span></button></td></tr>`; 
         }
       }); 
       document.getElementById('klasifikasiTableBody').innerHTML = html || `<tr><td colspan="4" align="center">Tidak ada klasifikasi ditemukan.</td></tr>`; 
@@ -1011,133 +1035,6 @@
     }
 
     // ==========================================
-    // MODULE: RETENSI
-    // ==========================================
-    function loadRetensiPage() { 
-      document.getElementById('content').innerHTML = `
-        <div class="page-header"><h2 class="page-title">Jadwal Retensi Arsip (JRA)</h2><button class="btn-primary" onclick="document.getElementById('addRetensiModal').showModal()"><span class="material-icons">add</span> Tambah Kategori JRA</button></div>
-        <div class="table-card" id="tableContainer">
-          <div class="header-container"><h3 style="color: #0f172a; font-size: 16px;">Master Data Retensi</h3><input type="text" id="retensiSearch" onkeyup="renderRetensiTable()" placeholder="Cari kategori..."></div>
-          <div class="table-wrapper">
-            <table class="wide-table" style="min-width: 900px;">
-              <thead><tr><th>Kategori Retensi</th><th>Masa Simpan (Tahun)</th><th>Nasib Akhir</th><th>Dasar Hukum</th><th class="sticky-col" style="width: 100px;">Aksi</th></tr></thead>
-              <tbody id="retensiTableBody"><tr><td colspan="5" align="center"><span class="material-icons spin">autorenew</span> Mengambil data...</td></tr></tbody>
-            </table>
-          </div>
-        </div>`; 
-      silentRefreshRetensi();
-    }
-    
-    function silentRefreshRetensi() {
-      google.script.run.withSuccessHandler(data => {
-        masterRetensiData = data;
-        populateRetensiOptions(data); 
-        renderRetensiTable();
-      }).getRetensiData();
-    }
-
-    function renderRetensiTable() { 
-      let html = ''; 
-      const filter = document.getElementById('retensiSearch') ? document.getElementById('retensiSearch').value.toLowerCase() : '';
-
-      masterRetensiData.forEach((row) => { 
-        if (!filter || row.category.toLowerCase().includes(filter)) {
-          let d = JSON.stringify(row).replace(/"/g, '&quot;'); 
-          let badgeColor = row.action === 'Archive' ? '#dcfce7' : (row.action === 'Destroy' ? '#fee2e2' : '#fef9c3'); 
-          let textColor = row.action === 'Archive' ? '#166534' : (row.action === 'Destroy' ? '#991b1b' : '#854d0e'); 
-          let displayAction = row.action === 'Archive' ? 'Permanen (Archive)' : (row.action === 'Destroy' ? 'Musnah (Destroy)' : 'Dinilai Kembali (Review)');
-          html += `<tr><td style="font-weight: 600; color: #334155;">${row.category}</td><td style="font-weight: 600; color: #3b82f6;">${row.period} Tahun</td><td><span style="background: ${badgeColor}; color: ${textColor}; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">${displayAction}</span></td><td style="white-space: normal; min-width: 250px; color: #475569;">${row.legalBasis}</td><td class="sticky-col"><button class="btn-icon edit" onclick="openRetensiModal(${d})"><span class="material-icons">edit</span></button><button class="btn-icon delete" onclick="triggerDeleteRetensiModal('${row.rowId}')"><span class="material-icons">delete</span></button></td></tr>`; 
-        }
-      }); 
-      document.getElementById('retensiTableBody').innerHTML = html || `<tr><td colspan="5" align="center">Tidak ada jadwal retensi.</td></tr>`; 
-    }
-    
-    function submitRetensiData() { 
-      const dataObj = { category: document.getElementById('r_category').value, period: document.getElementById('r_period').value, action: document.getElementById('r_action').value, legalBasis: document.getElementById('r_legalBasis').value }; 
-      let isValid = true;
-      ['r_category', 'r_period'].forEach(id => {
-         const el = document.getElementById(id); const errSpan = document.getElementById('err_' + id);
-         if (!el.value.trim()) { el.classList.add('error-border'); if(errSpan) errSpan.style.display = 'block'; isValid = false; }
-      });
-      if (!isValid) return; 
-      
-      // OPTIMISTIC UPDATE
-      closeModal('addRetensiModal');
-      showToast("Menyimpan jadwal retensi...", "info");
-      masterRetensiData.unshift({ rowId: 'temp_'+Date.now(), ...dataObj });
-      renderRetensiTable();
-
-      google.script.run.withSuccessHandler(() => { 
-        showToast("Jadwal retensi disimpan!", "success");
-        recordTrace("Added JRA Category: " + dataObj.category); 
-        document.getElementById('r_category').value = ''; document.getElementById('r_period').value = ''; document.getElementById('r_legalBasis').value = ''; 
-        silentRefreshRetensi(); 
-      }).processRetensiForm(dataObj); 
-    }
-    
-    function saveRetensiData() { 
-      const rowId = document.getElementById('er_rowId').value; 
-      const dataObj = { category: document.getElementById('er_category').value, period: document.getElementById('er_period').value, action: document.getElementById('er_action').value, legalBasis: document.getElementById('er_legalBasis').value }; 
-      let isValid = true;
-      ['er_category', 'er_period'].forEach(id => {
-         const el = document.getElementById(id); const errSpan = document.getElementById('err_' + id);
-         if (!el.value.trim()) { el.classList.add('error-border'); if(errSpan) errSpan.style.display = 'block'; isValid = false; }
-      });
-      if (!isValid) return; 
-      
-      closeModal('editRetensiModal');
-      showToast("Memperbarui jadwal retensi...", "info");
-      let rowIndex = masterRetensiData.findIndex(r => r.rowId == rowId);
-      if (rowIndex !== -1) { masterRetensiData[rowIndex] = { rowId: rowId, ...dataObj }; renderRetensiTable(); }
-
-      google.script.run.withSuccessHandler(() => { 
-        showToast("Perubahan disimpan!", "success");
-        recordTrace("Edited JRA Category: " + dataObj.category); 
-        silentRefreshRetensi(); 
-      }).editRetensiForm(dataObj, rowId); 
-    }
-    
-    function openRetensiModal(data) { 
-      document.getElementById('er_rowId').value = data.rowId; 
-      document.getElementById('er_category').value = data.category; 
-      document.getElementById('er_period').value = data.period; 
-      document.getElementById('er_action').value = data.action; 
-      document.getElementById('er_legalBasis').value = data.legalBasis; 
-      document.getElementById('editRetensiModal').showModal(); 
-    }
-    
-    function triggerDeleteRetensiModal(row) { 
-      document.getElementById('hiddenRetensiRowId').value = row; 
-      document.getElementById('deleteRetensiModal').showModal(); 
-    }
-    
-    function executeRetensiDelete() { 
-      const rowId = document.getElementById('hiddenRetensiRowId').value; 
-      closeModal('deleteRetensiModal');
-      showToast("Menghapus retensi...", "info");
-
-      masterRetensiData = masterRetensiData.filter(r => r.rowId != rowId);
-      renderRetensiTable();
-
-      google.script.run.withSuccessHandler(() => { 
-        showToast("Berhasil dihapus!", "success");
-        recordTrace("Deleted JRA Category Row: " + rowId); 
-        silentRefreshRetensi(); 
-      }).deleteRetensiRow(rowId); 
-    }
-
-    function populateRetensiOptions(retensiData) { 
-      let options = '<option value="">-- Gunakan JRA --</option>'; 
-      retensiDict = {}; 
-      retensiData.forEach((item) => { 
-        options += `<option value="${item.category}">${item.category} (${item.period} Tahun)</option>`; 
-        retensiDict[item.category] = { period: parseInt(item.period) || 0, action: item.action };
-      }); 
-      if(document.getElementById('a_retensiCategory')) document.getElementById('a_retensiCategory').innerHTML = options; 
-      if(document.getElementById('e_retensiCategory')) document.getElementById('e_retensiCategory').innerHTML = options; 
-    }
-
-    // ==========================================
     // MODULE: ARSIP (LAZY LOAD & OPTIMISTIC)
     // ==========================================
     let currentArsipLimit = 50; 
@@ -1149,9 +1046,7 @@
       document.getElementById('content').innerHTML = `
         <div class="page-header">
           <h2 class="page-title">Pusat Data Arsip</h2>
-          <button class="btn-primary" onclick="document.getElementById('addArsipModal').showModal()">
-            <span class="material-icons">add</span> Tambah Arsip Baru
-          </button>
+          <button class="btn-primary" onclick="document.getElementById('addArsipModal').showModal()"><span class="material-icons">add</span> Tambah Arsip Baru</button>
         </div>
         <div class="table-card" id="tableContainer">
           <div class="header-container"><h3 style="color: #0f172a; font-size: 18px; margin: 0;">Database Arsip</h3></div>
@@ -1167,7 +1062,7 @@
             </div>
           </div>
           <div class="table-wrapper" id="arsipScrollWrapper" style="max-height: calc(100vh - 350px);">
-            <table class="wide-table" style="min-width: 1650px;">
+            <table class="wide-table" style="min-width: 1500px;">
               <thead>
                 <tr>
                   <th class="sortable" onclick="handleSort('recordId')">Record ID <span id="sort_recordId" class="material-icons sort-icon"></span></th>
@@ -1177,13 +1072,12 @@
                   <th class="sortable" onclick="handleSort('dateCreated')">Tanggal Dibuat <span id="sort_dateCreated" class="material-icons sort-icon"></span></th>
                   <th class="sortable" onclick="handleSort('recordType')">Tipe Data <span id="sort_recordType" class="material-icons sort-icon"></span></th>
                   <th>Kerahasiaan</th><th>Penyimpanan Digital</th><th>Penyimpanan Fisik</th>
-                  <th class="sortable" onclick="handleSort('expirationDate')">Status Retensi <span id="sort_expirationDate" class="material-icons sort-icon"></span></th>
                   <th>Format</th><th class="sortable" style="text-align: center;" onclick="handleSort('status')">Status <span id="sort_status" class="material-icons sort-icon"></span></th>
                   <th class="sticky-col" style="width: 100px;">Aksi</th>
                 </tr>
               </thead>
               <tbody id="arsipTableBody">
-                <tr><td colspan="13" align="center"><span class="material-icons spin">autorenew</span> Mengambil data arsip...</td></tr>
+                <tr><td colspan="12" align="center"><span class="material-icons spin">autorenew</span> Mengambil data arsip...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1205,13 +1099,18 @@
     function silentRefreshArsip(isInitialLoad = false) {
       google.script.run.withSuccessHandler((res) => {
         if (isInitialLoad) {
-          let cOptions = '<option value="">-- Pilih Klasifikasi --</option>';
-          res.klasifikasi.forEach(i => { cOptions += `<option value="${i.kode}">${i.kode} - ${i.nama}</option>`; });
-          if(document.getElementById('a_businessActivity')) document.getElementById('a_businessActivity').innerHTML = cOptions; 
-          if(document.getElementById('e_businessActivity')) document.getElementById('e_businessActivity').innerHTML = cOptions;
-          
-          populateRetensiOptions(res.retensi);
+          masterKlasifikasiData = res.klasifikasi;
+          let listHtml_a = ''; let listHtml_e = '';
+          res.klasifikasi.forEach(i => { 
+            let fullText = `${i.kode} - ${i.nama}`;
+            let safeText = fullText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            listHtml_a += `<div class="autocomplete-item" onclick="selectKlasifikasi('a_businessActivity', '${i.kode}', '${safeText}', 'klasList_a')">${fullText}</div>`;
+            listHtml_e += `<div class="autocomplete-item" onclick="selectKlasifikasi('e_businessActivity', '${i.kode}', '${safeText}', 'klasList_e')">${fullText}</div>`;
+          });
+          if(document.getElementById('klasList_a')) document.getElementById('klasList_a').innerHTML = listHtml_a; 
+          if(document.getElementById('klasList_e')) document.getElementById('klasList_e').innerHTML = listHtml_e; 
         }
+        
         masterArsipData = res.arsip; 
         
         let cC = document.getElementById('filterCreator') ? document.getElementById('filterCreator').value : "";
@@ -1291,29 +1190,35 @@
 
     function buildArsipRowsHtml(dataSlice) {
       let rowsHtml = '';
+      
+      // Helper function to wrap text exactly every 5 words
+      function wrapTextByWords(text, wordCount) {
+        if (!text) return "-";
+        let words = text.split(" ");
+        let result = [];
+        for (let i = 0; i < words.length; i += wordCount) {
+          result.push(words.slice(i, i + wordCount).join(" "));
+        }
+        return result.join("<br>");
+      }
+
       dataSlice.forEach((row) => {
         let datas = JSON.stringify(row).replace(/"/g, '&quot;');
         let badgeClass = row.status.toLowerCase() === 'active' ? 'active' : row.status.toLowerCase() === 'inactive' ? 'inactive' : 'archive';
         
         let storageDisplay = row.storageLoc && row.storageLoc.includes('http') ? `<a href="${row.storageLoc}" target="_blank" style="color: #3b82f6; text-decoration: none; display: flex; align-items: center; gap: 4px;"><span class="material-icons" style="font-size: 16px;">description</span> Lihat Dok</a>` : `<span style="color: #94a3b8; font-style: italic;">Tidak Ada File</span>`;
         let physicalDisplay = `<div style="line-height: 1.5; font-size: 13px;"><span style="font-weight: 600; color: #475569;">Rak:</span> ${row.rack || '-'} <br><span style="font-weight: 600; color: #475569;">Boks:</span> ${row.box || '-'} <br><span style="font-weight: 600; color: #475569;">Jml Hal:</span> ${row.pageCount || '-'}<br><span style="font-weight: 600; color: #475569;">Hal:</span> ${row.physicalPage || '-'}</div>`;
-        let retensiDisplay = `<span style="color: #94a3b8; font-style: italic; font-size: 12px;">Tidak Diatur</span>`;
-        
-        if (row.retensiCategory && row.expirationDate && row.expirationDate !== "-") {
-          if (row.isExpired) {
-             let flashColor = row.retensiAction === 'Destroy' ? '#ef4444' : '#f59e0b';
-             retensiDisplay = `<div style="background: #fef2f2; border: 1px solid ${flashColor}; border-radius: 6px; padding: 6px; text-align: center; color: ${flashColor};"><div style="font-weight: 700; font-size: 11px; text-transform: uppercase; margin-bottom: 2px;">⚠️ AKSI: ${row.retensiAction}</div><div style="font-size: 10px; font-weight: 500;">${row.daysLeft}</div></div>`;
-          } else {
-             retensiDisplay = `<div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px; text-align: center;"><div style="font-weight: 600; font-size: 11px; color: #10b981; margin-bottom: 2px;">Berlaku: ${row.expirationDate}</div><div style="font-size: 10px; color: #64748b; font-weight: 500;">${row.daysLeft}</div></div>`;
-          }
-        }
 
         let displayStatus = row.status === 'Active' ? 'Aktif' : (row.status === 'Inactive' ? 'Inaktif' : 'Arsip');
+        
+        // Format the title to wrap every 5 words
+        let formattedTitle = wrapTextByWords(row.title, 5);
 
         rowsHtml += `<tr>
-            <td style="font-weight: 600; color: #3b82f6;">${row.recordId}</td><td style="font-weight: 500; color: #334155;">${row.title}</td>
+            <td style="font-weight: 600; color: #3b82f6;">${row.recordId}</td>
+            <td style="font-weight: 500; color: #334155; line-height: 1.6;">${formattedTitle}</td>
             <td>${row.creator}</td><td>${row.unit}</td><td>${row.dateCreated}</td><td>${row.recordType}</td><td>${row.confLevel}</td>
-            <td>${storageDisplay}</td><td>${physicalDisplay}</td><td>${retensiDisplay}</td><td>${row.format}</td>
+            <td>${storageDisplay}</td><td>${physicalDisplay}</td><td>${row.format}</td>
             <td style="text-align: center;"><span class="badge ${badgeClass}">${displayStatus}</span></td>
             <td class="sticky-col"><button class="btn-icon edit" onclick="openArsipModal(${datas})"><span class="material-icons">edit</span></button><button class="btn-icon delete" onclick="triggerDeleteArsipModal(${datas})"><span class="material-icons">delete</span></button></td>
           </tr>`;
@@ -1323,7 +1228,7 @@
 
     function submitArsipData() {
       const requiredFields = ['a_recordId', 'a_title', 'a_businessActivity', 'a_creator', 'a_unit', 'a_dateCreated', 'a_dateReceived', 'a_recordType', 'a_confLevel', 'a_format', 'a_status'];
-      const allFieldsToClear = requiredFields.concat(['a_storageLoc', 'a_manualLink', 'a_retensiCategory', 'a_pageCount', 'a_box', 'a_rack', 'a_physicalPage']);
+      const allFieldsToClear = requiredFields.concat(['a_storageLoc', 'a_manualLink', 'a_pageCount', 'a_box', 'a_rack', 'a_physicalPage']);
       let isValid = true; 
       const dataObj = {};
 
@@ -1332,7 +1237,8 @@
         const errorSpan = document.getElementById('err_' + id);
         dataObj[id.replace('a_', '')] = inputEl.value; 
         if (!inputEl.value || inputEl.value.toString().trim() === "") { 
-          inputEl.classList.add('error-border'); 
+          let targetEl = document.getElementById(id + '_btn') || inputEl;
+          targetEl.classList.add('error-border'); 
           if(errorSpan) errorSpan.style.display = 'block'; 
           isValid = false; 
         }
@@ -1340,7 +1246,9 @@
 
       if (!isValid) return; 
 
-      dataObj.retensiCategory = document.getElementById('a_retensiCategory').value;
+      // NONAKTIFKAN TOMBOL SAAT PROSES DIMULAI
+      setBtnLoading('addArsipBtn', true, 'Simpan Rekaman');
+
       dataObj.manualLink = document.getElementById('a_manualLink') ? document.getElementById('a_manualLink').value : "";
       dataObj.pageCount = document.getElementById('a_pageCount').value; 
       dataObj.box = document.getElementById('a_box').value; 
@@ -1357,7 +1265,7 @@
         recordType: dataObj.recordType, confLevel: dataObj.confLevel, 
         storageLoc: dataObj.manualLink || "Memproses...", format: dataObj.format,
         status: dataObj.status, pageCount: dataObj.pageCount, box: dataObj.box, rack: dataObj.rack,
-        physicalPage: dataObj.physicalPage, retensiCategory: dataObj.retensiCategory, expirationDate: "-", daysLeft: "-"
+        physicalPage: dataObj.physicalPage
       };
       
       masterArsipData.unshift(optRow);
@@ -1369,6 +1277,8 @@
         if (document.getElementById(id)) document.getElementById(id).value = '';
       });
 
+      document.getElementById('a_businessActivity_text').innerText = '-- Pilih Klasifikasi --';
+
       const fileInput = document.getElementById('a_storageLoc'); 
       const file = fileInput.files[0];
 
@@ -1377,6 +1287,7 @@
           showToast("File terlalu besar! Maksimal 5MB.", "error"); 
           masterArsipData = masterArsipData.filter(r => r.rowId !== optRow.rowId); 
           updateArsipRows(); 
+          setBtnLoading('addArsipBtn', false, 'Simpan Rekaman'); // AKTIFKAN KEMBALI JIKA ERROR
           return; 
         }
         const reader = new FileReader();
@@ -1392,12 +1303,15 @@
 
     function executeArsipServerCall(dataObj, tempId) {
       google.script.run.withSuccessHandler((res) => {
+        // AKTIFKAN KEMBALI TOMBOL SETELAH SELESAI
+        setBtnLoading('addArsipBtn', false, 'Simpan Rekaman');
+
         if (res.success === false) { 
           showToast(res.message, "error"); 
           masterArsipData = masterArsipData.filter(r => r.rowId !== tempId); 
           updateArsipRows(); 
         } else { 
-          console.log(res)
+          console.log(res);
           showToast("Arsip Berhasil Disimpan!", "success"); 
           recordTrace(`Tambah Arsip: ${dataObj.recordId}`); 
           silentRefreshArsip(); 
@@ -1410,6 +1324,8 @@
       document.getElementById('e_recordId').value = data.recordId; 
       document.getElementById('e_title').value = data.title;
       document.getElementById('e_businessActivity').value = data.businessActivity; 
+      let foundKlas = masterKlasifikasiData.find(k => k.kode === data.businessActivity);
+      document.getElementById('e_businessActivity_text').innerText = foundKlas ? `${foundKlas.kode} - ${foundKlas.nama}` : data.businessActivity;
       document.getElementById('e_creator').value = data.creator; 
       document.getElementById('e_unit').value = data.unit;
       document.getElementById('e_dateCreated').value = data.dateCreated; 
@@ -1418,7 +1334,6 @@
       document.getElementById('e_confLevel').value = data.confLevel; 
       document.getElementById('e_format').value = data.format; 
       document.getElementById('e_status').value = data.status;
-      document.getElementById('e_retensiCategory').value = data.retensiCategory || '';
       
       document.getElementById('e_storageLoc').value = ''; 
       document.getElementById('e_manualLink').value = '';
@@ -1448,11 +1363,14 @@
         recordId: document.getElementById('e_recordId').value, title: document.getElementById('e_title').value, businessActivity: document.getElementById('e_businessActivity').value,
         creator: document.getElementById('e_creator').value, unit: document.getElementById('e_unit').value, dateCreated: document.getElementById('e_dateCreated').value,
         dateReceived: document.getElementById('e_dateReceived').value, recordType: document.getElementById('e_recordType').value, confLevel: document.getElementById('e_confLevel').value,
-        format: document.getElementById('e_format').value, status: document.getElementById('e_status').value, retensiCategory: document.getElementById('e_retensiCategory').value, 
+        format: document.getElementById('e_format').value, status: document.getElementById('e_status').value,
         pageCount: document.getElementById('e_pageCount').value, box: document.getElementById('e_box').value, rack: document.getElementById('e_rack').value,
         manualLink: document.getElementById('e_manualLink').value, 
         physicalPage: document.getElementById('e_physicalPage') ? document.getElementById('e_physicalPage').value : ""
       };
+
+      // NONAKTIFKAN TOMBOL SAAT PROSES DIMULAI
+      setBtnLoading('saveArsipBtn', true, 'Simpan Perubahan');
 
       closeModal('editArsipModal');
       showToast("Memperbarui rekaman arsip...", "info");
@@ -1468,7 +1386,9 @@
 
       if (file) {
         if (file.size > (5 * 1024 * 1024)) { 
-          showToast("File terlalu besar! Maksimal 5MB.", "error"); silentRefreshArsip(); return; 
+          showToast("File terlalu besar! Maksimal 5MB.", "error"); silentRefreshArsip(); 
+          setBtnLoading('saveArsipBtn', false, 'Simpan Perubahan'); // AKTIFKAN KEMBALI JIKA ERROR
+          return; 
         }
         const reader = new FileReader(); 
         reader.onload = function(e) { 
@@ -1483,6 +1403,9 @@
 
     function executeEditArsipCall(dataObj, rowId) {
       google.script.run.withSuccessHandler((res) => {
+        // AKTIFKAN KEMBALI TOMBOL SETELAH SELESAI
+        setBtnLoading('saveArsipBtn', false, 'Simpan Perubahan');
+
         if (res.success === false) { 
           showToast(res.message, "error"); silentRefreshArsip();
         } else { 
