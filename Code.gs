@@ -199,6 +199,15 @@ function processArsipForm(dataObj) {
         newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       } else {
         newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+        // Eksekusi pemberian akses eksklusif
+        if (dataObj.sharedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dataObj.sharedEmail)) {
+          try { 
+            newFile.addViewer(dataObj.sharedEmail); 
+          } catch(e) { 
+            uploadedFileUrl = newFile.getUrl(); 
+            return { success: true, message: "Arsip tersimpan, TAPI gagal memberi akses ke " + dataObj.sharedEmail + " (Mungkin email ditolak oleh aturan domain instansi)." }; 
+          }
+        }
       }
       
       uploadedFileUrl = newFile.getUrl();
@@ -268,12 +277,6 @@ function editArsipForm(dataObj, row) {
     let isOldFileDrive = oldFileUrl && oldFileUrl.toString().includes("drive.google.com");
 
     if (dataObj.fileData && dataObj.fileData.base64) {
-      if (isOldFileDrive) {
-        const match = oldFileUrl.match(/[-\w]{25,}/);
-        if (match) { try { DriveApp.getFileById(match[0]).setTrashed(true); } catch(e){} }
-      }
-      var ext = "";
-      if (dataObj.fileData.fileName.lastIndexOf(".") !== -1) ext = dataObj.fileData.fileName.substring(dataObj.fileData.fileName.lastIndexOf("."));
       var blob = Utilities.newBlob(Utilities.base64Decode(dataObj.fileData.base64), dataObj.fileData.mimeType, cleanRecordId + ext);
       var newFile = targetFolder.createFile(blob);
       
@@ -282,9 +285,12 @@ function editArsipForm(dataObj, row) {
         newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       } else {
         newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+        if (dataObj.sharedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dataObj.sharedEmail)) {
+          try { newFile.addViewer(dataObj.sharedEmail); } catch(e) { Logger.log("Gagal share: " + e.message); }
+        }
       }
       
-      finalFileUrl = newFile.getUrl(); 
+      finalFileUrl = newFile.getUrl();
       
     } else if (dataObj.manualLink && dataObj.manualLink.trim() !== "") {
       if (isOldFileDrive && dataObj.manualLink !== oldFileUrl) {
@@ -297,20 +303,27 @@ function editArsipForm(dataObj, row) {
       if (isOldFileDrive) {
         const match = oldFileUrl.match(/[-\w]{25,}/);
         if (match) {
-          const existingFile = DriveApp.getFileById(match[0]);
+          // INI ADALAH BARIS YANG HILANG (Mendefinisikan existingFile)
+          const existingFile = DriveApp.getFileById(match[0]); 
+          
           if (oldBusinessActivity !== newBusinessActivity) existingFile.moveTo(targetFolder);
+          
           if (oldRecordId !== cleanRecordId) {
             var ext = "";
             if (existingFile.getName().lastIndexOf(".") !== -1) ext = existingFile.getName().substring(existingFile.getName().lastIndexOf("."));
             existingFile.setName(cleanRecordId + ext);
           }
           
-          // UPDATE KEAMANAN: Ubah hak akses file lama sesuai dengan opsi yang baru dipilih
+          // UPDATE KEAMANAN: Ubah hak akses file lama
           if (dataObj.confLevel === "Public") {
             existingFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
           } else {
             existingFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+            if (dataObj.sharedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dataObj.sharedEmail)) {
+              try { existingFile.addViewer(dataObj.sharedEmail); } catch(e) { Logger.log("Gagal share: " + e.message); }
+            }
           }
+          
         }
       } else { finalFileUrl = ""; }
     }
