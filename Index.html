@@ -351,7 +351,7 @@
       <div class="form-group"><label>Unit Pengolah</label><input type="text" id="a_unit" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_unit" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="a_dateCreated" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_dateCreated" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="a_recordType" class="modal-input" placeholder="Contoh: SK, Laporan" oninput="clearFieldError(this)"><span id="err_a_recordType" class="field-error">Kolom ini wajib diisi</span></div>
-      <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="a_confLevel" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Public">Biasa (Public)</option><option value="Internal">Terbatas (Internal)</option><option value="Confidential">Rahasia (Confidential)</option><option value="Strict">Sangat Rahasia (Strict)</option></select><span id="err_a_confLevel" class="field-error">Kolom ini wajib diisi</span></div>
+      <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="a_confLevel" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Public">Biasa (Public)</option><option value="Confidential">Rahasia (Confidential)</option></select><span id="err_a_confLevel" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Format Fisik</label><select id="a_format" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Physical">Fisik (Physical)</option><option value="Digital">Digital (Softcopy)</option></select><span id="err_a_format" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="a_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="a_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)"></div></div>
       
@@ -414,7 +414,7 @@
       <div class="form-group"><label>Unit Pengolah</label><input type="text" id="e_unit" class="modal-input"></div>
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="e_dateCreated" class="modal-input"></div>
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="e_recordType" class="modal-input"></div>
-      <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="e_confLevel"><option value="Public">Publik</option><option value="Internal">Internal</option><option value="Confidential">Rahasia</option><option value="Strict">Sangat Rahasia</option></select></div>
+      <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="e_confLevel"><option value="Public">Publik</option><option value="Confidential">Rahasia</option></select></div>
       <div class="form-group"><label>Format Fisik</label><select id="e_format"><option value="Physical">Fisik</option><option value="Digital">Digital</option></select></div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="e_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;" title="Upload ke Google Drive"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="e_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)" title="Tempel link eksternal"></div></div>
       
@@ -1056,7 +1056,7 @@
               <select id="filterCreator" onchange="updateArsipRows()"><option value="">Semua Pencipta</option></select>
               <select id="filterUnit" onchange="updateArsipRows()"><option value="">Semua Unit</option></select>
               <select id="filterRecordType" onchange="updateArsipRows()"><option value="">Semua Tipe Data</option></select>
-              <select id="filterConfLevel" onchange="updateArsipRows()"><option value="">Kerahasiaan</option><option value="Public">Biasa (Public)</option><option value="Internal">Terbatas (Internal)</option><option value="Confidential">Rahasia (Confidential)</option><option value="Strict">Sangat Rahasia (Strict)</option></select>
+              <select id="filterConfLevel" onchange="updateArsipRows()"><option value="">Kerahasiaan</option><option value="Public">Biasa (Public)</option><option value="Confidential">Rahasia (Confidential)</option></select>
               <select id="filterFormat" onchange="updateArsipRows()"><option value="">Semua Format</option><option value="Physical">Fisik (Physical)</option><option value="Digital">Digital</option></select>
               <select id="filterStatus" onchange="updateArsipRows()"><option value="">Semua Status</option><option value="Active">Aktif</option><option value="Inactive">Inaktif</option><option value="Archive">Arsip</option></select>
             </div>
@@ -1246,7 +1246,6 @@
 
       if (!isValid) return; 
 
-      // NONAKTIFKAN TOMBOL SAAT PROSES DIMULAI
       setBtnLoading('addArsipBtn', true, 'Simpan Rekaman');
 
       dataObj.manualLink = document.getElementById('a_manualLink') ? document.getElementById('a_manualLink').value : "";
@@ -1273,21 +1272,25 @@
       isSortAsc = false; 
       updateArsipRows();
 
+      // ==========================================================
+      // PERBAIKAN: AMBIL FILE TERLEBIH DAHULU SEBELUM FORM DIRESET
+      // ==========================================================
+      const fileInput = document.getElementById('a_storageLoc'); 
+      const file = fileInput.files[0];
+
+      // SETELAH FILE DIAMANAN, BARU KITA BERSIHKAN FORMULIRNYA
       allFieldsToClear.forEach(id => {
         if (document.getElementById(id)) document.getElementById(id).value = '';
       });
-
       document.getElementById('a_businessActivity_text').innerText = '-- Pilih Klasifikasi --';
 
-      const fileInput = document.getElementById('a_storageLoc'); 
-      const file = fileInput.files[0];
 
       if (file) {
         if (file.size > (5 * 1024 * 1024)) { 
           showToast("File terlalu besar! Maksimal 5MB.", "error"); 
           masterArsipData = masterArsipData.filter(r => r.rowId !== optRow.rowId); 
           updateArsipRows(); 
-          setBtnLoading('addArsipBtn', false, 'Simpan Rekaman'); // AKTIFKAN KEMBALI JIKA ERROR
+          setBtnLoading('addArsipBtn', false, 'Simpan Rekaman');
           return; 
         }
         const reader = new FileReader();
