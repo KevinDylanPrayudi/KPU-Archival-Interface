@@ -352,6 +352,11 @@
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="a_dateCreated" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_dateCreated" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="a_recordType" class="modal-input" placeholder="Contoh: SK, Laporan" oninput="clearFieldError(this)"><span id="err_a_recordType" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="a_confLevel" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Public">Biasa (Public)</option><option value="Confidential">Rahasia (Confidential)</option></select><span id="err_a_confLevel" class="field-error">Kolom ini wajib diisi</span></div>
+      <div class="form-group">
+        <label>Beri Akses Email (Opsional)</label>
+        <input type="email" id="a_sharedEmail" class="modal-input" placeholder="khusus@kpu.go.id" oninput="clearFieldError(this)">
+        <span id="err_a_sharedEmail" class="field-error">Format email tidak valid</span>
+      </div>
       <div class="form-group"><label>Format Fisik</label><select id="a_format" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Physical">Fisik (Physical)</option><option value="Digital">Digital (Softcopy)</option></select><span id="err_a_format" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="a_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="a_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)"></div></div>
       
@@ -416,6 +421,11 @@
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="e_recordType" class="modal-input"></div>
       <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="e_confLevel"><option value="Public">Publik</option><option value="Confidential">Rahasia</option></select></div>
       <div class="form-group"><label>Format Fisik</label><select id="e_format"><option value="Physical">Fisik</option><option value="Digital">Digital</option></select></div>
+      <div class="form-group">
+        <label>Beri Akses Email (Opsional)</label>
+        <input type="email" id="e_sharedEmail" class="modal-input" placeholder="khusus@kpu.go.id" oninput="clearFieldError(this)">
+        <span id="err_e_sharedEmail" class="field-error">Format email tidak valid</span>
+      </div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="e_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;" title="Upload ke Google Drive"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="e_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)" title="Tempel link eksternal"></div></div>
       
       <div class="form-group full-width physical-group">
@@ -1228,7 +1238,7 @@
 
     function submitArsipData() {
       const requiredFields = ['a_recordId', 'a_title', 'a_businessActivity', 'a_creator', 'a_unit', 'a_dateCreated', 'a_dateReceived', 'a_recordType', 'a_confLevel', 'a_format', 'a_status'];
-      const allFieldsToClear = requiredFields.concat(['a_storageLoc', 'a_manualLink', 'a_pageCount', 'a_box', 'a_rack', 'a_physicalPage']);
+      const allFieldsToClear = requiredFields.concat(['a_storageLoc', 'a_manualLink', 'a_pageCount', 'a_box', 'a_rack', 'a_physicalPage', 'a_sharedEmail']);
       let isValid = true; 
       const dataObj = {};
 
@@ -1245,6 +1255,13 @@
       });
 
       if (!isValid) return; 
+      // VALIDASI EMAIL SPESIFIK JIKA DIISI
+      dataObj.sharedEmail = document.getElementById('a_sharedEmail') ? document.getElementById('a_sharedEmail').value.trim() : "";
+      if (dataObj.sharedEmail !== "" && !isValidEmail(dataObj.sharedEmail)) {
+        document.getElementById('a_sharedEmail').classList.add('error-border');
+        document.getElementById('err_a_sharedEmail').style.display = 'block';
+        return;
+      }
 
       setBtnLoading('addArsipBtn', true, 'Simpan Rekaman');
 
@@ -1362,6 +1379,14 @@
     function saveArsipData() {
       const rowId = document.getElementById('e_arsipRowId').value; 
 
+      // VALIDASI EMAIL SPESIFIK JIKA DIISI
+      const sharedEmailVal = document.getElementById('e_sharedEmail') ? document.getElementById('e_sharedEmail').value.trim() : "";
+      if (sharedEmailVal !== "" && !isValidEmail(sharedEmailVal)) {
+        document.getElementById('e_sharedEmail').classList.add('error-border');
+        document.getElementById('err_e_sharedEmail').style.display = 'block';
+        return;
+      }
+
       const dataObj = {
         recordId: document.getElementById('e_recordId').value, title: document.getElementById('e_title').value, businessActivity: document.getElementById('e_businessActivity').value,
         creator: document.getElementById('e_creator').value, unit: document.getElementById('e_unit').value, dateCreated: document.getElementById('e_dateCreated').value,
@@ -1369,7 +1394,8 @@
         format: document.getElementById('e_format').value, status: document.getElementById('e_status').value,
         pageCount: document.getElementById('e_pageCount').value, box: document.getElementById('e_box').value, rack: document.getElementById('e_rack').value,
         manualLink: document.getElementById('e_manualLink').value, 
-        physicalPage: document.getElementById('e_physicalPage') ? document.getElementById('e_physicalPage').value : ""
+        physicalPage: document.getElementById('e_physicalPage') ? document.getElementById('e_physicalPage').value : "",
+        sharedEmail: sharedEmailVal
       };
 
       // NONAKTIFKAN TOMBOL SAAT PROSES DIMULAI
@@ -1831,6 +1857,11 @@
         console.warn("PDF JS could not be initialized", err);
       }
     });
+
+    function isValidEmail(email) {
+      // Regex standar untuk mengecek format email (contoh@domain.com)
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
   </script>
   
 </body>
