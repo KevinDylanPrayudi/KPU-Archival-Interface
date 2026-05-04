@@ -193,6 +193,18 @@ function processArsipForm(dataObj) {
       if (dataObj.fileData.fileName.lastIndexOf(".") !== -1) ext = dataObj.fileData.fileName.substring(dataObj.fileData.fileName.lastIndexOf("."));
       var blob = Utilities.newBlob(Utilities.base64Decode(dataObj.fileData.base64), dataObj.fileData.mimeType, cleanRecordId + ext);
       var newFile = targetFolder.createFile(blob);
+      
+      // LOGIKA KEAMANAN: Cek tingkat kerahasiaan
+      if (dataObj.confLevel === "Public") {
+        newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } else {
+        newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+      }
+      
+      uploadedFileUrl = newFile.getUrl();
+      // BARIS BARU: Otomatis mengubah akses file Google Drive menjadi "Siapa saja yang memiliki link (Viewer)"
+      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      
       uploadedFileUrl = newFile.getUrl(); 
     } catch (error) { return { success: false, message: "Drive Error: " + error.message }; }
   } else if (dataObj.manualLink && dataObj.manualLink.trim() !== "") {
@@ -264,6 +276,14 @@ function editArsipForm(dataObj, row) {
       if (dataObj.fileData.fileName.lastIndexOf(".") !== -1) ext = dataObj.fileData.fileName.substring(dataObj.fileData.fileName.lastIndexOf("."));
       var blob = Utilities.newBlob(Utilities.base64Decode(dataObj.fileData.base64), dataObj.fileData.mimeType, cleanRecordId + ext);
       var newFile = targetFolder.createFile(blob);
+      
+      // LOGIKA KEAMANAN: Cek tingkat kerahasiaan
+      if (dataObj.confLevel === "Public") {
+        newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } else {
+        newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+      }
+      
       finalFileUrl = newFile.getUrl(); 
       
     } else if (dataObj.manualLink && dataObj.manualLink.trim() !== "") {
@@ -283,6 +303,13 @@ function editArsipForm(dataObj, row) {
             var ext = "";
             if (existingFile.getName().lastIndexOf(".") !== -1) ext = existingFile.getName().substring(existingFile.getName().lastIndexOf("."));
             existingFile.setName(cleanRecordId + ext);
+          }
+          
+          // UPDATE KEAMANAN: Ubah hak akses file lama sesuai dengan opsi yang baru dipilih
+          if (dataObj.confLevel === "Public") {
+            existingFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          } else {
+            existingFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
           }
         }
       } else { finalFileUrl = ""; }
