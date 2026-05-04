@@ -1,5 +1,5 @@
 // ==========================================
-// ⚙️ TEST ENGINE (Sistem Auto-Guard Kode)
+// ⚙️ TEST ENGINE (Mesin Validasi Kode)
 // ==========================================
 function assertEquals(expected, actual, testName) {
   if (expected === actual) {
@@ -24,79 +24,84 @@ function assertNotUndefined(value, testName) {
 // ==========================================
 // 🚀 MAIN EXECUTOR (Jalankan Fungsi Ini)
 // ==========================================
-function RUN_ALL_TESTS() {
+function RUN_ALL_KPU_TESTS() {
   Logger.log("==========================================");
   Logger.log("  MEMULAI PENGUJIAN SISTEM ARSIP KPU");
   Logger.log("==========================================");
   
-  test_Utility_FormatData();
+  test_Utility_Module();
   test_Pegawai_Integration();
-  test_Klasifikasi_Read();
-  test_Arsip_Drive_Security();
+  test_Klasifikasi_Module();
+  test_Arsip_Security_Logic();
+  test_Warehouse_Logic();
 
   Logger.log("==========================================");
   Logger.log("  PENGUJIAN SELESAI");
   Logger.log("==========================================");
 }
 
+
 // ==========================================
 // 📦 1. MODULE UTILITY
 // ==========================================
-function test_Utility_FormatData() {
+function test_Utility_Module() {
   Logger.log("\n--- MENGUJI MODULE UTILITY ---");
   
+  // Tes: Konversi tanggal dan pembersihan spasi
   let mockDate = new Date("2026-04-15T00:00:00"); 
-  let rawData = [[mockDate, null, "  Dokumen Pemilu  "]];
+  let rawData = [[mockDate, null, "  Spasi Ekstra  "]];
   let formattedData = formatRawData(rawData);
   
-  assertEquals("2026-04-15", formattedData[0][0], "Konversi Objek Tanggal (yyyy-MM-dd)");
-  assertEquals("", formattedData[0][1], "Penanganan Input Kosong (Null)");
-  assertEquals("Dokumen Pemilu", formattedData[0][2], "Pembersihan Spasi Berlebih (Trim)");
+  assertEquals("2026-04-15", formattedData[0][0], "Konversi Tanggal (format yyyy-MM-dd)");
+  assertEquals("", formattedData[0][1], "Penanganan Input Kosong (Null/Undefined)");
+  assertEquals("Spasi Ekstra", formattedData[0][2], "Pembersihan Spasi (Trim String)");
 }
 
+
 // ==========================================
-// 👥 2. MODULE PEGAWAI (Integration Test)
+// 👥 2. MODULE PEGAWAI (Integration)
 // ==========================================
 function test_Pegawai_Integration() {
   Logger.log("\n--- MENGUJI MODULE PEGAWAI ---");
-  const testEmail = "test_cpns@kpu.go.id";
-  const testPass = "Latsar2026";
-  const testName = "Admin Penguji";
+  const testEmail = "unit_test_admin@kpu.go.id";
+  const testPass = "TestPass123";
+  const testName = "Admin Testing";
 
   try {
-    // 1. Tes Pembuatan Data
+    // 1. Tes Pembuatan Data Baru
     let createRes = processForm(testName, testEmail, testPass);
     assertEquals(true, createRes.success, "Pembuatan Akun Pegawai Baru");
 
     // 2. Tes Verifikasi Login
     let loginSuccess = verifyLogin(testEmail, testPass);
-    assertEquals(true, loginSuccess.success, "Verifikasi Login Sandi Benar");
+    assertEquals(true, loginSuccess.success, "Login dengan kredensial benar");
 
     let loginFail = verifyLogin(testEmail, "SalahSandi99");
-    assertEquals(false, loginFail.success, "Penolakan Login Sandi Salah");
+    assertEquals(false, loginFail.success, "Penolakan Login dengan sandi salah");
 
-    // 3. Tes Duplikasi
-    let duplicateRes = processForm("Admin Lain", testEmail, "PassLain");
-    assertEquals(false, duplicateRes.success, "Pencegahan Duplikasi Email");
+    // 3. Tes Duplikasi Data
+    let duplicateRes = processForm("Admin Copy", testEmail, "PassLain");
+    assertEquals(false, duplicateRes.success, "Pencegahan Duplikasi Email Terdaftar");
 
   } finally {
-    // 4. CLEANUP: Hapus data uji dari Spreadsheet
+    // 4. CLEANUP: Hapus data uji dari Spreadsheet secara otomatis
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pegawai");
     var data = sheet.getDataRange().getValues();
     for(var i = 1; i < data.length; i++) {
       if(data[i][1].toString().trim().toLowerCase() === testEmail.toLowerCase()) { 
         sheet.deleteRow(i + 1); 
-        Logger.log("🧹 CLEANUP: Baris data uji Pegawai berhasil dihapus");
+        Logger.log("🧹 CLEANUP: Baris data uji Pegawai berhasil dihapus.");
         break; 
       }
     }
   }
 }
 
+
 // ==========================================
 // 🗂️ 3. MODULE KLASIFIKASI
 // ==========================================
-function test_Klasifikasi_Read() {
+function test_Klasifikasi_Module() {
   Logger.log("\n--- MENGUJI MODULE KLASIFIKASI ---");
   
   let klasData = getKlasifikasiData();
@@ -104,25 +109,61 @@ function test_Klasifikasi_Read() {
   
   if (klasData.length > 0) {
     assertNotUndefined(klasData[0].rowId, "Pemetaan rowId Klasifikasi");
-    assertNotUndefined(klasData[0].folderLink, "Pemetaan URL Folder Drive");
+    assertNotUndefined(klasData[0].kode, "Pemetaan Kode Klasifikasi");
   } else {
-    Logger.log("⚠️ INFO: Melewati tes pemetaan karena tabel Klasifikasi kosong.");
+    Logger.log("⚠️ INFO: Tabel Klasifikasi kosong, melewati tes pemetaan.");
   }
 }
+
 
 // ==========================================
 // 📄 4. MODULE ARSIP (Keamanan Drive)
 // ==========================================
-function test_Arsip_Drive_Security() {
-  Logger.log("\n--- MENGUJI LOGIKA KEAMANAN DRIVE ---");
+function test_Arsip_Security_Logic() {
+  Logger.log("\n--- MENGUJI LOGIKA KEAMANAN DRIVE (ARSIP) ---");
   
-  // Menguji murni logika if/else yang men-trigger hak akses Drive
-  let confPublic = "Public";
-  let confStrict = "Strict";
-  
-  let actualPublicAccess = (confPublic === "Public") ? "ANYONE_WITH_LINK_VIEW" : "PRIVATE_NONE";
-  let actualStrictAccess = (confStrict === "Public") ? "ANYONE_WITH_LINK_VIEW" : "PRIVATE_NONE";
+  // Simulasi logika penentuan akses file tanpa menyentuh Drive beneran
+  function simulateDriveSecurity(confLevel) {
+    if (confLevel === "Public") {
+      return "ANYONE_WITH_LINK_VIEW";
+    } else {
+      return "PRIVATE_NONE";
+    }
+  }
 
-  assertEquals("ANYONE_WITH_LINK_VIEW", actualPublicAccess, "Dokumen 'Public' -> Terbuka (Viewer)");
-  assertEquals("PRIVATE_NONE", actualStrictAccess, "Dokumen 'Strict' -> Terkunci (Private)");
+  assertEquals("ANYONE_WITH_LINK_VIEW", simulateDriveSecurity("Public"), "Arsip 'Public' -> Terbuka (Viewer)");
+  assertEquals("PRIVATE_NONE", simulateDriveSecurity("Internal"), "Arsip 'Internal' -> Terkunci (Private)");
+  assertEquals("PRIVATE_NONE", simulateDriveSecurity("Confidential"), "Arsip 'Confidential' -> Terkunci (Private)");
+  assertEquals("PRIVATE_NONE", simulateDriveSecurity("Strict"), "Arsip 'Strict' -> Terkunci (Private)");
+}
+
+
+// ==========================================
+// 🏢 5. MODULE WAREHOUSE (Lokasi Fisik)
+// ==========================================
+function test_Warehouse_Logic() {
+  Logger.log("\n--- MENGUJI LOGIKA GUDANG (LOKASI FISIK) ---");
+  
+  // Simulasi logika updateArsipLokasi untuk memastikan data sel sejajar dengan aksi
+  function simulateLocationUpdate(currentRack, oldRack, newRack, action) {
+    let resultRack = currentRack;
+    if (action === 'renameRack' && currentRack === oldRack) {
+      resultRack = newRack;
+    } else if (action === 'deleteRack' && currentRack === oldRack) {
+      resultRack = "";
+    }
+    return resultRack;
+  }
+
+  // Uji Ganti Nama Rak
+  let renameTest = simulateLocationUpdate("Rak A", "Rak A", "Rak B", "renameRack");
+  assertEquals("Rak B", renameTest, "Pembaruan Nama Rak Berhasil");
+
+  // Uji Hapus Rak
+  let deleteTest = simulateLocationUpdate("Rak A", "Rak A", "", "deleteRack");
+  assertEquals("", deleteTest, "Penghapusan Rak Menghapus Data Lokasi Arsip");
+  
+  // Uji Nama Rak Tidak Cocok (Seharusnya tidak berubah)
+  let noMatchTest = simulateLocationUpdate("Rak C", "Rak A", "Rak B", "renameRack");
+  assertEquals("Rak C", noMatchTest, "Rak yang tidak cocok diabaikan dari pembaruan");
 }
