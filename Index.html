@@ -294,6 +294,69 @@
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('deleteModal')">Batal</button><button class="btn-confirm" id="deletePegawaiBtn" onclick="executePegawaiDelete()">Ya, Hapus</button></div>
   </dialog>
 
+  <!-- Modal Kelola Hak Akses -->
+  <dialog id="permissionModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;"> <!-- Diperlebar agar tabel lebih lega -->
+      
+      <!-- PERBAIKAN HEADER: Gunakan Flexbox agar sejajar -->
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px;">
+        <h2 style="margin: 0;">Kelola Hak Akses Dokumen</h2>
+        <span class="material-icons close-btn" onclick="closeModal('permissionModal')" style="cursor: pointer; color: #64748b;">close</span>
+      </div>
+      
+      <div class="modal-body">
+        <!-- ... (Isi modal-body tetap sama seperti sebelumnya) ... -->
+        <div class="modal-body">
+          <p style="font-size: 14px; color: #64748b; margin-bottom: 10px;">Berikan akses dokumen ke email baru:</p>
+          
+          <!-- BARIS BARU: Form Input Email di Modal Akses -->
+          <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <input type="email" id="newPermEmail" class="modal-input" placeholder="Masukkan email Google..." style="flex: 1;" oninput="this.classList.remove('error-border')">
+            <button class="btn primary" onclick="triggerGrant()" id="btnGrantAccess" style="white-space: nowrap;">Beri Akses</button>
+          </div>
+
+          <p style="font-size: 14px; color: #64748b; margin-bottom: 10px;">Daftar email yang memiliki akses saat ini:</p>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="text-align: left;">Email Pengguna</th>
+                  <th style="text-align: center;">Status Sistem</th>
+                  <th style="text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="permissionTableBody">
+                <tr><td colspan="3" align="center">Memuat data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Konfirmasi Cabut Akses -->
+  <dialog id="revokeConfirmModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 30px 20px;">
+      <div style="color: #ef4444; margin-bottom: 15px;">
+        <span class="material-icons" style="font-size: 48px;">warning</span>
+      </div>
+      <h3 style="margin-bottom: 10px; color: #1e293b;">Cabut Hak Akses?</h3>
+      <p style="color: #64748b; margin-bottom: 25px; line-height: 1.5;" id="revokeConfirmText"></p>
+      <div style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
+        <!-- Tombol Batal -->
+        <button onclick="closeModal('revokeConfirmModal')" style="background: #f1f5f9; color: #475569; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+          Batal
+        </button>
+        
+        <!-- Tombol Cabut Akses -->
+        <button onclick="executeRevoke()" style="background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+          Ya, Cabut Akses
+        </button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="addKlasifikasiModal">
     <h3 style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">Tambah Klasifikasi</h3>
     <p id="klasErrorMsg" style="display: none; align-items: center; gap: 5px; color: #ef4444; font-size: 13px; margin: -10px 0 15px 0;"><span class="material-icons" style="font-size: 16px;">error_outline</span><span id="klasErrorText"></span></p>
@@ -352,11 +415,6 @@
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="a_dateCreated" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_dateCreated" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="a_recordType" class="modal-input" placeholder="Contoh: SK, Laporan" oninput="clearFieldError(this)"><span id="err_a_recordType" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="a_confLevel" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Public">Biasa (Public)</option><option value="Confidential">Rahasia (Confidential)</option></select><span id="err_a_confLevel" class="field-error">Kolom ini wajib diisi</span></div>
-      <div class="form-group">
-        <label>Beri Akses Email (Opsional)</label>
-        <input type="email" id="a_sharedEmail" class="modal-input" placeholder="khusus@kpu.go.id" oninput="clearFieldError(this)">
-        <span id="err_a_sharedEmail" class="field-error">Format email tidak valid</span>
-      </div>
       <div class="form-group"><label>Format Fisik</label><select id="a_format" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Physical">Fisik (Physical)</option><option value="Digital">Digital (Softcopy)</option></select><span id="err_a_format" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="a_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="a_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)"></div></div>
       
@@ -421,11 +479,6 @@
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="e_recordType" class="modal-input"></div>
       <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="e_confLevel"><option value="Public">Publik</option><option value="Confidential">Rahasia</option></select></div>
       <div class="form-group"><label>Format Fisik</label><select id="e_format"><option value="Physical">Fisik</option><option value="Digital">Digital</option></select></div>
-      <div class="form-group">
-        <label>Beri Akses Email (Opsional)</label>
-        <input type="email" id="e_sharedEmail" class="modal-input" placeholder="khusus@kpu.go.id" oninput="clearFieldError(this)">
-        <span id="err_e_sharedEmail" class="field-error">Format email tidak valid</span>
-      </div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="e_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;" title="Upload ke Google Drive"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="e_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)" title="Tempel link eksternal"></div></div>
       
       <div class="form-group full-width physical-group">
@@ -786,6 +839,102 @@
       document.getElementById(hiddenId + '_text').innerText = fullText;
       document.getElementById(listId).style.display = 'none';
       if(event) event.stopPropagation(); // Mencegah dropdown terbuka dua kali
+    }
+
+    // --- MANAJEMEN HAK AKSES (UI QUEUE SYSTEM) ---
+    let currentPermRecordId = '';
+    let currentPermFileUrl = '';
+
+    function openPermissionModal(recordId, fileUrl) {
+      if (!fileUrl || !fileUrl.includes('drive.google.com')) {
+        showToast("Arsip ini tidak memiliki file Drive yang valid untuk dikelola.", "warning");
+        return;
+      }
+      currentPermRecordId = recordId;
+      currentPermFileUrl = fileUrl;
+      
+      document.getElementById('permissionTableBody').innerHTML = '<tr><td colspan="3" align="center">Memuat daftar email...</td></tr>';
+      document.getElementById('permissionModal').showModal();
+      
+      // Mengambil data dari backend
+      google.script.run.withSuccessHandler(renderPermissionTable).getRecordPermissions(recordId);
+    }
+
+    function renderPermissionTable(data) {
+      let html = '';
+      if (!data || data.length === 0) {
+        html = '<tr><td colspan="3" align="center" style="color: #64748b; font-style: italic;">Belum ada email khusus yang diberi akses.</td></tr>';
+      } else {
+        data.forEach(item => {
+          let isPending = item.status === 'PENDING';
+          let badgeClass = isPending ? 'inactive' : 'active';
+          let statusText = item.action === 'GRANT' ? 'Akses Terbuka' : 'Mencabut...';
+          let actionHtml = '';
+          
+          if (item.action === 'REVOKE' && isPending) {
+            actionHtml = '<span style="font-size: 12px; color: #ef4444; font-style: italic;">Antrean Cabut...</span>';
+          } else if (item.action === 'GRANT' && isPending) {
+            actionHtml = '<span style="font-size: 12px; color: #f59e0b; font-style: italic;">Antrean Beri...</span>';
+          } else {
+            actionHtml = `<button class="btn-icon delete" title="Cabut Akses" onclick="triggerRevoke('${item.email}')"><span class="material-icons">person_remove</span></button>`;
+          }
+
+          html += `<tr>
+            <td style="font-weight: 500; color: #334155; word-break: break-all; max-width: 250px;">${item.email}</td>
+            <td style="text-align: center;"><span class="badge ${badgeClass}">${statusText}</span></td>
+            <td style="text-align: center;">${actionHtml}</td>
+          </tr>`;
+        });
+      }
+      document.getElementById('permissionTableBody').innerHTML = html;
+    }
+
+    let emailToRevoke = ''; // Variabel global sementara untuk menyimpan email yang akan dicabut
+
+    // Fungsi ini hanya membuka UI Modal Peringatan (tidak pakai window.confirm lagi)
+    function triggerRevoke(email) {
+      emailToRevoke = email;
+      document.getElementById('revokeConfirmText').innerHTML = `Sistem akan mencabut hak akses dokumen ini dari <br><b style="color:#0f172a;">${email}</b><br>dalam waktu maksimal 5 menit.`;
+      document.getElementById('revokeConfirmModal').showModal();
+    }
+
+    // Fungsi ini dieksekusi saat tombol "Ya, Cabut Akses" di dalam modal diklik
+    function executeRevoke() {
+      closeModal('revokeConfirmModal'); // Tutup modal peringatan
+      document.getElementById('permissionTableBody').innerHTML = '<tr><td colspan="3" align="center">Memasukkan perintah ke antrean...</td></tr>';
+      
+      // Memasukkan perintah REVOKE ke antrean Sheet
+      google.script.run.withSuccessHandler(() => {
+        showToast("Perintah pencabutan sukses masuk antrean.", "success");
+        // Segarkan tabel untuk melihat status PENDING
+        google.script.run.withSuccessHandler(renderPermissionTable).getRecordPermissions(currentPermRecordId);
+      }).queuePermissionChange(currentPermRecordId, currentPermFileUrl, emailToRevoke, 'REVOKE');
+    }
+
+    function triggerGrant() {
+      const emailInput = document.getElementById('newPermEmail');
+      const email = emailInput.value.trim();
+      const btnGrant = document.getElementById('btnGrantAccess');
+      
+      if (!isValidEmail(email)) {
+        showToast("Format email tidak valid!", "error");
+        emailInput.classList.add('error-border');
+        return;
+      }
+      
+      btnGrant.innerText = "Memproses...";
+      btnGrant.disabled = true;
+      document.getElementById('permissionTableBody').innerHTML = '<tr><td colspan="3" align="center">Memasukkan perintah ke antrean...</td></tr>';
+      
+      // Memasukkan perintah GRANT ke antrean Sheet
+      google.script.run.withSuccessHandler(() => {
+        showToast("Perintah pemberian akses sukses masuk antrean.", "success");
+        emailInput.value = '';
+        btnGrant.innerText = "Beri Akses";
+        btnGrant.disabled = false;
+        // Segarkan tabel untuk melihat status PENDING
+        google.script.run.withSuccessHandler(renderPermissionTable).getRecordPermissions(currentPermRecordId);
+      }).queuePermissionChange(currentPermRecordId, currentPermFileUrl, email, 'GRANT');
     }
 
     // ==========================================
@@ -1230,7 +1379,11 @@
             <td>${row.creator}</td><td>${row.unit}</td><td>${row.dateCreated}</td><td>${row.recordType}</td><td>${row.confLevel}</td>
             <td>${storageDisplay}</td><td>${physicalDisplay}</td><td>${row.format}</td>
             <td style="text-align: center;"><span class="badge ${badgeClass}">${displayStatus}</span></td>
-            <td class="sticky-col"><button class="btn-icon edit" onclick="openArsipModal(${datas})"><span class="material-icons">edit</span></button><button class="btn-icon delete" onclick="triggerDeleteArsipModal(${datas})"><span class="material-icons">delete</span></button></td>
+            <td class="sticky-col">
+              <button class="btn-icon" style="color: #64748b;" title="Kelola Hak Akses" onclick="openPermissionModal('${row.recordId}', '${row.storageLoc}')"><span class="material-icons">admin_panel_settings</span></button>
+              <button class="btn-icon edit" onclick="openArsipModal(${datas})"><span class="material-icons">edit</span></button>
+              <button class="btn-icon delete" onclick="triggerDeleteArsipModal(${datas})"><span class="material-icons">delete</span></button>
+            </td>
           </tr>`;
       });
       return rowsHtml;
@@ -1238,7 +1391,7 @@
 
     function submitArsipData() {
       const requiredFields = ['a_recordId', 'a_title', 'a_businessActivity', 'a_creator', 'a_unit', 'a_dateCreated', 'a_dateReceived', 'a_recordType', 'a_confLevel', 'a_format', 'a_status'];
-      const allFieldsToClear = requiredFields.concat(['a_storageLoc', 'a_manualLink', 'a_pageCount', 'a_box', 'a_rack', 'a_physicalPage', 'a_sharedEmail']);
+      const allFieldsToClear = requiredFields.concat(['a_storageLoc', 'a_manualLink', 'a_pageCount', 'a_box', 'a_rack', 'a_physicalPage']);
       let isValid = true; 
       const dataObj = {};
 
@@ -1255,14 +1408,7 @@
       });
 
       if (!isValid) return; 
-      // VALIDASI EMAIL SPESIFIK JIKA DIISI
-      dataObj.sharedEmail = document.getElementById('a_sharedEmail') ? document.getElementById('a_sharedEmail').value.trim() : "";
-      if (dataObj.sharedEmail !== "" && !isValidEmail(dataObj.sharedEmail)) {
-        document.getElementById('a_sharedEmail').classList.add('error-border');
-        document.getElementById('err_a_sharedEmail').style.display = 'block';
-        return;
-      }
-
+      
       setBtnLoading('addArsipBtn', true, 'Simpan Rekaman');
 
       dataObj.manualLink = document.getElementById('a_manualLink') ? document.getElementById('a_manualLink').value : "";
@@ -1379,14 +1525,6 @@
     function saveArsipData() {
       const rowId = document.getElementById('e_arsipRowId').value; 
 
-      // VALIDASI EMAIL SPESIFIK JIKA DIISI
-      const sharedEmailVal = document.getElementById('e_sharedEmail') ? document.getElementById('e_sharedEmail').value.trim() : "";
-      if (sharedEmailVal !== "" && !isValidEmail(sharedEmailVal)) {
-        document.getElementById('e_sharedEmail').classList.add('error-border');
-        document.getElementById('err_e_sharedEmail').style.display = 'block';
-        return;
-      }
-
       const dataObj = {
         recordId: document.getElementById('e_recordId').value, title: document.getElementById('e_title').value, businessActivity: document.getElementById('e_businessActivity').value,
         creator: document.getElementById('e_creator').value, unit: document.getElementById('e_unit').value, dateCreated: document.getElementById('e_dateCreated').value,
@@ -1394,8 +1532,7 @@
         format: document.getElementById('e_format').value, status: document.getElementById('e_status').value,
         pageCount: document.getElementById('e_pageCount').value, box: document.getElementById('e_box').value, rack: document.getElementById('e_rack').value,
         manualLink: document.getElementById('e_manualLink').value, 
-        physicalPage: document.getElementById('e_physicalPage') ? document.getElementById('e_physicalPage').value : "",
-        sharedEmail: sharedEmailVal
+        physicalPage: document.getElementById('e_physicalPage') ? document.getElementById('e_physicalPage').value : ""
       };
 
       // NONAKTIFKAN TOMBOL SAAT PROSES DIMULAI
