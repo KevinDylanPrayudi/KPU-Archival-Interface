@@ -295,19 +295,19 @@
   </dialog>
 
   <!-- Modal Kelola Hak Akses -->
+  <!-- Modal Kelola Hak Akses -->
   <dialog id="permissionModal" class="modal">
-    <div class="modal-content" style="max-width: 700px;"> <!-- Diperlebar agar tabel lebih lega -->
+    <!-- Diperlebar menjadi 700px agar tabel tidak berdesakan -->
+    <div class="modal-content" style="max-width: 700px;"> 
       
-      <!-- PERBAIKAN HEADER: Gunakan Flexbox agar sejajar -->
+      <!-- PERBAIKAN HEADER: Flexbox agar judul dan tombol sejajar -->
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px;">
         <h2 style="margin: 0;">Kelola Hak Akses Dokumen</h2>
-        <span class="material-icons close-btn" onclick="closeModal('permissionModal')" style="cursor: pointer; color: #64748b;">close</span>
+        <span class="material-icons close-btn" onclick="closeModal('permissionModal')" style="cursor: pointer; color: #64748b; font-size: 24px;">close</span>
       </div>
       
       <div class="modal-body">
-        <!-- ... (Isi modal-body tetap sama seperti sebelumnya) ... -->
-        <div class="modal-body">
-          <p style="font-size: 14px; color: #64748b; margin-bottom: 10px;">Berikan akses dokumen ke email baru:</p>
+        <p style="font-size: 14px; color: #64748b; margin-bottom: 10px;">Berikan akses dokumen ke email baru:</p>
           
           <!-- BARIS BARU: Form Input Email di Modal Akses -->
           <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -343,16 +343,11 @@
       </div>
       <h3 style="margin-bottom: 10px; color: #1e293b;">Cabut Hak Akses?</h3>
       <p style="color: #64748b; margin-bottom: 25px; line-height: 1.5;" id="revokeConfirmText"></p>
-      <div style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
-        <!-- Tombol Batal -->
-        <button onclick="closeModal('revokeConfirmModal')" style="background: #f1f5f9; color: #475569; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
-          Batal
-        </button>
-        
-        <!-- Tombol Cabut Akses -->
-        <button onclick="executeRevoke()" style="background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-          Ya, Cabut Akses
-        </button>
+      
+      <!-- Tombol dengan desain modern -->
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button onclick="closeModal('revokeConfirmModal')" style="background: #f1f5f9; color: #475569; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Batal</button>
+        <button onclick="executeRevoke()" style="background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Ya, Cabut Akses</button>
       </div>
     </div>
   </dialog>
@@ -415,7 +410,7 @@
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="a_dateCreated" class="modal-input" oninput="clearFieldError(this)"><span id="err_a_dateCreated" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="a_recordType" class="modal-input" placeholder="Contoh: SK, Laporan" oninput="clearFieldError(this)"><span id="err_a_recordType" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="a_confLevel" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Public">Biasa (Public)</option><option value="Confidential">Rahasia (Confidential)</option></select><span id="err_a_confLevel" class="field-error">Kolom ini wajib diisi</span></div>
-      <div class="form-group"><label>Format Fisik</label><select id="a_format" class="modal-input" onchange="clearFieldError(this)"><option value="">-- Pilih --</option><option value="Physical">Fisik (Physical)</option><option value="Digital">Digital (Softcopy)</option></select><span id="err_a_format" class="field-error">Kolom ini wajib diisi</span></div>
+      <div class="form-group"><label>Format Fisik</label><select id="a_format" class="modal-input" onchange="toggleFormatFields('a')"><option value="">-- Pilih --</option><option value="Fisik">Fisik (Physical)</option><option value="Digital">Digital (Softcopy)</option><option value="Hybrid">Hybrid</option></select><span id="err_a_format" class="field-error">Kolom ini wajib diisi</span></div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="a_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="a_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)"></div></div>
       
       <div class="form-group full-width physical-group">
@@ -478,7 +473,7 @@
       <div class="form-group"><label>Tanggal Dibuat</label><input type="date" id="e_dateCreated" class="modal-input"></div>
       <div class="form-group"><label>Jenis Arsip</label><input type="text" id="e_recordType" class="modal-input"></div>
       <div class="form-group"><label>Tingkat Kerahasiaan</label><select id="e_confLevel"><option value="Public">Publik</option><option value="Confidential">Rahasia</option></select></div>
-      <div class="form-group"><label>Format Fisik</label><select id="e_format"><option value="Physical">Fisik</option><option value="Digital">Digital</option></select></div>
+      <div class="form-group"><label>Format Fisik</label><select id="e_format" class="modal-input" onchange="toggleFormatFields('e')"><option value="Fisik">Fisik</option><option value="Digital">Digital</option></select></div>
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="e_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;" title="Upload ke Google Drive"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="e_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)" title="Tempel link eksternal"></div></div>
       
       <div class="form-group full-width physical-group">
@@ -1205,7 +1200,7 @@
       document.getElementById('content').innerHTML = `
         <div class="page-header">
           <h2 class="page-title">Pusat Data Arsip</h2>
-          <button class="btn-primary" onclick="document.getElementById('addArsipModal').showModal()"><span class="material-icons">add</span> Tambah Arsip Baru</button>
+          <button class="btn-primary" onclick="document.getElementById('addArsipModal').showModal();toggleFormatFields('a');"><span class="material-icons">add</span> Tambah Arsip Baru</button>
         </div>
         <div class="table-card" id="tableContainer">
           <div class="header-container"><h3 style="color: #0f172a; font-size: 18px; margin: 0;">Database Arsip</h3></div>
@@ -1408,6 +1403,35 @@
       });
 
       if (!isValid) return; 
+
+      // --- VALIDASI WAJIB BERDASARKAN FORMAT (TAMBAH) ---
+      const formatVal = document.getElementById('a_format').value;
+      
+      // Jika Fisik / Hybrid -> Wajib isi Lokasi Fisik
+      if (formatVal === 'Fisik' || formatVal === 'Hybrid') {
+        const rackVal = document.getElementById('a_rack').value.trim();
+        const boxVal = document.getElementById('a_box').value.trim();
+        
+        if (!rackVal || !boxVal) {
+          showToast("Rak dan Boks WAJIB diisi untuk format Fisik/Hybrid!", "error");
+          if (!rackVal) document.getElementById('a_rack').classList.add('error-border');
+          if (!boxVal) document.getElementById('a_box').classList.add('error-border');
+          return; // Hentikan proses simpan
+        }
+      }
+      
+      // Jika Digital / Hybrid -> Wajib ada File atau Link Penyimpanan
+      if (formatVal === 'Digital' || formatVal === 'Hybrid') {
+        const fileInput = document.getElementById('a_storageLoc'); // ID yang benar untuk File Upload
+        const manualLink = document.getElementById('a_manualLink').value.trim(); // ID yang benar untuk Tautan Manual
+        
+        if ((!fileInput.files || fileInput.files.length === 0) && manualLink === "") {
+          showToast("File Dokumen atau Link Drive Manual WAJIB diisi untuk format Digital/Hybrid!", "error");
+          document.getElementById('a_storageLoc').classList.add('error-border'); 
+          document.getElementById('a_manualLink').classList.add('error-border'); 
+          return; // Hentikan proses simpan
+        }
+      }
       
       setBtnLoading('addArsipBtn', true, 'Simpan Rekaman');
 
@@ -1507,6 +1531,22 @@
       document.getElementById('e_box').value = data.box || ''; 
       document.getElementById('e_pageCount').value = data.pageCount || '';
       document.getElementById('e_physicalPage').value = data.physicalPage || '';
+
+      toggleFormatFields('e');
+
+      // --- LOGIKA DROPDOWN FORMAT DINAMIS ---
+    const formatSelect = document.getElementById('e_format');
+    formatSelect.innerHTML = ''; // Kosongkan opsi bawaan HTML
+    
+    // 1. Selalu tambahkan format aslinya saat ini
+    formatSelect.add(new Option(data.format, data.format));
+    
+    // 2. Jika format saat ini BUKAN Hybrid, berikan opsi untuk "Upgrade" ke Hybrid
+    if (data.format !== 'Hybrid') {
+      formatSelect.add(new Option('Hybrid', 'Hybrid'));
+    }
+    
+    formatSelect.value = data.format; // Tetapkan pilihan ke format asli
       
       const linkDiv = document.getElementById('currentFileLink');
       if (data.storageLoc && data.storageLoc.includes('http')) {
@@ -1524,6 +1564,21 @@
 
     function saveArsipData() {
       const rowId = document.getElementById('e_arsipRowId').value; 
+      
+      const formatVal = document.getElementById('e_format').value;
+      
+      // Jika Fisik / Hybrid -> Wajib isi Lokasi Fisik
+      if (formatVal === 'Fisik' || formatVal === 'Hybrid') {
+        const rackVal = document.getElementById('e_rack').value.trim();
+        const boxVal = document.getElementById('e_box').value.trim();
+        
+        if (!rackVal || !boxVal) {
+          showToast("Rak dan Boks WAJIB diisi untuk format Fisik/Hybrid!", "error");
+          if (!rackVal) document.getElementById('e_rack').classList.add('error-border');
+          if (!boxVal) document.getElementById('e_box').classList.add('error-border');
+          return; // Hentikan proses simpan
+        }
+      }
 
       const dataObj = {
         recordId: document.getElementById('e_recordId').value, title: document.getElementById('e_title').value, businessActivity: document.getElementById('e_businessActivity').value,
@@ -1998,6 +2053,46 @@
     function isValidEmail(email) {
       // Regex standar untuk mengecek format email (contoh@domain.com)
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // --- FUNGSI DINAMIS: TAMPILKAN/SEMBUNYIKAN KOLOM BERDASARKAN FORMAT ---
+    function toggleFormatFields(prefix) {
+      const formatSelect = document.getElementById(prefix + '_format');
+      if (!formatSelect) return;
+      
+      // Ambil nilai dropdown (Pastikan teks di HTML Anda persis "Fisik", "Digital", atau "Hybrid")
+      const format = formatSelect.value;
+      
+      // Logika Kondisi
+      const isDigital = (format === 'Digital' || format === 'Hybrid');
+      const isFisik = (format === 'Fisik' || format === 'Hybrid');
+      
+      // --- DAFTAR ID INPUT ---
+      // Cukup gunakan storageId, karena dia satu grup (satu div) dengan manualLink
+      const storageId = prefix + '_storageLoc';            
+      
+      const rackId = prefix + '_rack';                     
+      const boxId = prefix + '_box';                       
+      const physPageId = prefix + '_physicalPage';         
+      
+      // Fungsi internal untuk menyembunyikan/menampilkan bungkus <div class="form-group">
+      const toggleVisibility = (id, show) => {
+        const el = document.getElementById(id);
+        if (el) {
+          const formGroup = el.closest('.form-group');
+          if (formGroup) {
+            formGroup.style.display = show ? 'block' : 'none';
+          }
+        }
+      };
+
+      // 1. Eksekusi Kolom Digital (Sembunyikan jika pilih 'Fisik')
+      toggleVisibility(storageId, isDigital); 
+      
+      // 2. Eksekusi Kolom Fisik (Munculkan jika pilih 'Fisik' atau 'Hybrid')
+      toggleVisibility(rackId, isFisik);
+      toggleVisibility(boxId, isFisik);
+      toggleVisibility(physPageId, isFisik);
     }
   </script>
   
