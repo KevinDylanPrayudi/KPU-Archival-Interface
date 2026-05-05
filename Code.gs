@@ -199,15 +199,6 @@ function processArsipForm(dataObj) {
         newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       } else {
         newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-        // Eksekusi pemberian akses eksklusif
-        if (dataObj.sharedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dataObj.sharedEmail)) {
-          try { 
-            newFile.addViewer(dataObj.sharedEmail); 
-          } catch(e) { 
-            uploadedFileUrl = newFile.getUrl(); 
-            return { success: true, message: "Arsip tersimpan, TAPI gagal memberi akses ke " + dataObj.sharedEmail + " (Mungkin email ditolak oleh aturan domain instansi)." }; 
-          }
-        }
       }
       
       uploadedFileUrl = newFile.getUrl();
@@ -285,9 +276,6 @@ function editArsipForm(dataObj, row) {
         newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       } else {
         newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-        if (dataObj.sharedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dataObj.sharedEmail)) {
-          try { newFile.addViewer(dataObj.sharedEmail); } catch(e) { Logger.log("Gagal share: " + e.message); }
-        }
       }
       
       finalFileUrl = newFile.getUrl();
@@ -319,9 +307,6 @@ function editArsipForm(dataObj, row) {
             existingFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
           } else {
             existingFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-            if (dataObj.sharedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dataObj.sharedEmail)) {
-              try { existingFile.addViewer(dataObj.sharedEmail); } catch(e) { Logger.log("Gagal share: " + e.message); }
-            }
           }
           
         }
@@ -391,4 +376,113 @@ function updateArsipLokasi(oldRack, oldBox, newRack, newBox, action) {
     }
   }
   return { success: true };
+}
+
+// ==========================================
+// 🚦 PERMISSION QUEUE SYSTEM (Background Worker)
+// ==========================================
+function queuePermissionChange(recordId, fileUrl, email, action) {
+  if (!email || !fileUrl || fileUrl.trim() === "") return;
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("File_Permissions");
+  if (!sheet) return;
+  
+  var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
+  sheet.appendRow([recordId, fileUrl, email, action.toUpperCase(), "PENDING", timestamp]);
+}
+
+function processPermissionQueue() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("File_Permissions");
+  if (!sheet) return;
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return; // Return if only headers exist
+
+  var processedCount = 0;
+  var MAX_PROCESS = 15; // Memproses maksimal 15 email per siklus agar tidak timeout
+
+  for (var i = 1; i < data.length; i++) {
+    if (processedCount >= MAX_PROCESS) break;
+
+    var rowNum = i + 1;
+    var recordId = data[i][0];
+    var fileUrl = data[i][1];
+    var email = data[i][2].toString().trim();
+    var action = data[i][3];
+    var status = data[i][4];
+
+    if (status === "PENDING" && fileUrl.includes("drive.google.com")) {
+      try {
+        var match = fileUrl.match(/[-\w]{25,}/);
+        if (match) {
+          var file = DriveApp.getFileById(match[0]);
+
+          if (action === "GRANT") {
+            file.addViewer(email);
+          } else if (action === "REVOKE") {
+            file.removeViewer(email);
+          }
+          
+          // Tandai selesai jika berhasil
+          sheet.getRange(rowNum, 5).setValue("COMPLETED");
+        } else {
+          sheet.getRange(rowNum, 5).setValue("ERROR: Invalid URL Format");
+        }
+      } catch (e) {
+        Logger.log("Error processing row " + rowNum + ": " + e.message);
+        sheet.getRange(rowNum, 5).setValue("ERROR: " + e.message);
+      }
+      processedCount++;
+    }
+  }
+}
+
+// Membaca status akses terakhir dari setiap email untuk dokumen tertentu
+function getRecordPermissions(recordId) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("File_Permissions");
+    if (!sheet) return [];
+    
+    var data = sheet.getDataRange().getValues();
+    var perms = {}; 
+    
+    // Paksa ID menjadi String dan hapus spasi tersembunyi
+    var targetId = String(recordId).trim().toUpperCase();
+    
+    for (var i = 1; i < data.length; i++) {
+      var rowRecordId = String(data[i][0]).trim().toUpperCase();
+      
+      // Jika ID cocok, ambil datanya
+      if (rowRecordId === targetId) {
+        var email = String(data[i][2]).trim();
+        var action = String(data[i][3]).trim().toUpperCase();
+        var status = String(data[i][4]).trim().toUpperCase();
+        
+        // PENGAMANAN KRUSIAL: Cegah error Date object dari Google Sheets
+        var timestamp = "";
+        if (data[i][5] instanceof Date) {
+          timestamp = Utilities.formatDate(data[i][5], Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
+        } else {
+          timestamp = String(data[i][5]);
+        }
+        
+        // Simpan hanya jika email valid
+        if (email !== "" && email !== "UNDEFINED" && email !== "NULL") {
+          perms[email] = { action: action, status: status, timestamp: timestamp };
+        }
+      }
+    }
+    
+    var result = [];
+    for (var key in perms) {
+      if (perms[key].action === "GRANT" || (perms[key].action === "REVOKE" && perms[key].status === "PENDING")) {
+        result.push({ email: key, action: perms[key].action, status: perms[key].status, timestamp: perms[key].timestamp });
+      }
+    }
+    
+    return result;
+    
+  } catch (error) {
+    // Jika ada error, tampilkan di tabel agar kita tahu persis masalahnya!
+    return [{ email: "ERROR SISTEM: " + error.message, action: "GRANT", status: "ERROR", timestamp: "" }];
+  }
 }
