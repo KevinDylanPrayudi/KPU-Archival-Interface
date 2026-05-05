@@ -147,7 +147,7 @@ function getArsipData() {
       creator: value[3], unit: value[4], dateCreated: value[5], dateReceived: value[6], 
       recordType: value[7], confLevel: value[8], storageLoc: value[9], format: value[10], 
       status: value[11], pageCount: value[12] || "", box: value[13] || "", rack: value[14] || "",
-      modifiedBy: value[15] || "", modifiedAt: value[16] || "", physicalPage: value[20] || ""
+      modifiedBy: value[15] || "", modifiedAt: value[16] || "", physicalPage: value[17] || ""
     }
   });
 }
@@ -328,17 +328,36 @@ function editArsipForm(dataObj, row) {
   return { success: true, message: "Success! Updated Arsip Record." };
 }
 
-function deleteArsipRow(row) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Arsip");
-  const fileUrl = sheet.getRange(row, 10).getValue(); 
-  if (fileUrl && fileUrl.toString().includes("drive.google.com")) {
-    try {
-      const match = fileUrl.match(/[-\w]{25,}/);
-      if (match) DriveApp.getFileById(match[0]).setTrashed(true); 
-    } catch (e) {}
+// 3. HAPUS ARSIP (Sapu bersih juga hak aksesnya)
+function deleteArsipRow(rowId, recordId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Arsip");
+  
+  // A. Hapus Arsip Utama
+  if (sheet) {
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == rowId || data[i][1] == recordId) { 
+        sheet.deleteRow(i + 1);
+        break;
+      }
+    }
   }
-  sheet.deleteRow(row);
-  return "Success!";
+  
+  // B. PERBAIKAN: Hapus semua riwayat hak akses terkait Arsip ini
+  if (recordId) {
+    var permSheet = ss.getSheetByName("File_Permissions");
+    if (permSheet) {
+      var permData = permSheet.getDataRange().getValues();
+      // Hapus dari bawah ke atas agar index baris tidak berantakan
+      for (var j = permData.length - 1; j >= 1; j--) {
+        if (permData[j][0] === recordId) {
+          permSheet.deleteRow(j + 1);
+        }
+      }
+    }
+  }
+  return "Success";
 }
 
 // ==========================================
@@ -381,13 +400,31 @@ function updateArsipLokasi(oldRack, oldBox, newRack, newBox, action) {
 // ==========================================
 // 🚦 PERMISSION QUEUE SYSTEM (Background Worker)
 // ==========================================
+// 2. ANTREAN HAK AKSES (Timpa baris lama agar Sheet tidak menumpuk)
 function queuePermissionChange(recordId, fileUrl, email, action) {
-  if (!email || !fileUrl || fileUrl.trim() === "") return;
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("File_Permissions");
-  if (!sheet) return;
+  if (!sheet) return "Sheet not found";
   
-  var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
-  sheet.appendRow([recordId, fileUrl, email, action.toUpperCase(), "PENDING", timestamp]);
+  var data = sheet.getDataRange().getValues();
+  var updated = false;
+  
+  // Cari apakah email ini sudah ada di daftar
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === recordId && data[i][2] === email) {
+      // PERBAIKAN: Jangan buat baris baru, timpa saja baris yang sudah ada
+      sheet.getRange(i + 1, 4).setValue(action); 
+      sheet.getRange(i + 1, 5).setValue("PENDING"); 
+      sheet.getRange(i + 1, 6).setValue(new Date()); 
+      updated = true;
+      break;
+    }
+  }
+  
+  // Jika ini email baru, tambahkan ke bawah
+  if (!updated) {
+    sheet.appendRow([recordId, fileUrl, email, action, "PENDING", new Date()]);
+  }
+  return "Success";
 }
 
 function processPermissionQueue() {
@@ -436,7 +473,7 @@ function processPermissionQueue() {
   }
 }
 
-// Membaca status akses terakhir dari setiap email untuk dokumen tertentu
+// 1. BACA HAK AKSES (Sembunyikan langsung email yang dicabut dari layar)
 function getRecordPermissions(recordId) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("File_Permissions");
@@ -444,28 +481,16 @@ function getRecordPermissions(recordId) {
     
     var data = sheet.getDataRange().getValues();
     var perms = {}; 
-    
-    // Paksa ID menjadi String dan hapus spasi tersembunyi
     var targetId = String(recordId).trim().toUpperCase();
     
     for (var i = 1; i < data.length; i++) {
       var rowRecordId = String(data[i][0]).trim().toUpperCase();
-      
-      // Jika ID cocok, ambil datanya
       if (rowRecordId === targetId) {
         var email = String(data[i][2]).trim();
         var action = String(data[i][3]).trim().toUpperCase();
         var status = String(data[i][4]).trim().toUpperCase();
+        var timestamp = data[i][5] instanceof Date ? Utilities.formatDate(data[i][5], Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss") : String(data[i][5]);
         
-        // PENGAMANAN KRUSIAL: Cegah error Date object dari Google Sheets
-        var timestamp = "";
-        if (data[i][5] instanceof Date) {
-          timestamp = Utilities.formatDate(data[i][5], Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
-        } else {
-          timestamp = String(data[i][5]);
-        }
-        
-        // Simpan hanya jika email valid
         if (email !== "" && email !== "UNDEFINED" && email !== "NULL") {
           perms[email] = { action: action, status: status, timestamp: timestamp };
         }
@@ -474,15 +499,14 @@ function getRecordPermissions(recordId) {
     
     var result = [];
     for (var key in perms) {
-      if (perms[key].action === "GRANT" || (perms[key].action === "REVOKE" && perms[key].status === "PENDING")) {
+      // PERBAIKAN: Hanya kirim data yang "GRANT". 
+      // Jika "REVOKE", UI akan menganggapnya sudah hilang!
+      if (perms[key].action === "GRANT") {
         result.push({ email: key, action: perms[key].action, status: perms[key].status, timestamp: perms[key].timestamp });
       }
     }
-    
     return result;
-    
   } catch (error) {
-    // Jika ada error, tampilkan di tabel agar kita tahu persis masalahnya!
     return [{ email: "ERROR SISTEM: " + error.message, action: "GRANT", status: "ERROR", timestamp: "" }];
   }
 }
