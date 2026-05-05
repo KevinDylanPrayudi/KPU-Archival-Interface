@@ -414,7 +414,7 @@
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="a_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="a_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)"></div></div>
       
       <div class="form-group full-width physical-group">
-        <div class="physical-group-title"><span class="material-icons" style="font-size: 16px;">inventory_2</span> Lokasi Fisik & Penyimpanan (Opsional)</div>
+        <div class="physical-group-title"><span class="material-icons" style="font-size: 16px;">inventory_2</span> Lokasi Fisik & Penyimpanan</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
           <div class="form-group" style="margin: 0;">
             <label>Rak / Lemari</label>
@@ -477,7 +477,7 @@
       <div class="form-group full-width" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 5px;"><label style="color: #3b82f6;">File Digital (Upload File ATAU Paste Link)</label><div id="currentFileLink" style="font-size: 11px; margin-bottom: 4px;"></div><div style="display: flex; gap: 10px; align-items: center;"><input type="file" id="e_storageLoc" class="modal-input" onchange="clearFieldError(this)" style="padding: 7px; flex: 1;" title="Upload ke Google Drive"><span style="font-weight: 600; color: #94a3b8; font-size: 12px;">ATAU</span><input type="url" id="e_manualLink" class="modal-input" placeholder="https://..." style="flex: 1;" oninput="clearFieldError(this)" title="Tempel link eksternal"></div></div>
       
       <div class="form-group full-width physical-group">
-        <div class="physical-group-title"><span class="material-icons" style="font-size: 16px;">inventory_2</span> Lokasi Fisik & Penyimpanan (Opsional)</div>
+        <div class="physical-group-title"><span class="material-icons" style="font-size: 16px;">inventory_2</span> Lokasi Fisik & Penyimpanan</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
           <div class="form-group" style="margin: 0;">
             <label>Rak / Lemari</label>
@@ -1205,7 +1205,7 @@
         <div class="table-card" id="tableContainer">
           <div class="header-container"><h3 style="color: #0f172a; font-size: 18px; margin: 0;">Database Arsip</h3></div>
           <div class="filter-container">
-            <div class="search-row"><span class="material-icons">search</span><input type="text" id="filterSearch" placeholder="Cari ID Rekaman, Judul..." onkeyup="updateArsipRows()"></div>
+            <div class="search-row"><span class="material-icons">search</span><input type="text" id="filterSearch" placeholder="Cari ID Rekaman, Judul..." onkeyup="debouncedUpdateArsipRows()"></div>
             <div class="dropdown-row">
               <select id="filterCreator" onchange="updateArsipRows()"><option value="">Semua Pencipta</option></select>
               <select id="filterUnit" onchange="updateArsipRows()"><option value="">Semua Unit</option></select>
@@ -1336,6 +1336,14 @@
       }
     }
 
+    let searchTimeout;
+    function debouncedUpdateArsipRows() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        updateArsipRows();
+      }, 350); // Menunggu 350ms setelah ketikan terakhir
+    }
+
     function renderArsipRowsSlice() {
       let start = currentArsipLimit - 50;
       let slice = filteredArsipData.slice(start, currentArsipLimit);
@@ -1368,14 +1376,22 @@
         // Format the title to wrap every 5 words
         let formattedTitle = wrapTextByWords(row.title, 5);
 
+        // --- LOGIKA BARU: Sembunyikan ikon gembok jika statusnya Public ---
+        let permissionBtn = '';
+        if (row.confLevel !== 'Public' && row.format !== 'Fisik') {
+          // Tombol hanya muncul jika dokumen BUKAN Public (misal: Confidential/Rahasia)
+          permissionBtn = `<button class="btn-icon" style="color: #64748b;" title="Kelola Hak Akses" onclick="openPermissionModal('${row.recordId}', '${row.storageLoc}')"><span class="material-icons">admin_panel_settings</span></button>`;
+        }
+
         rowsHtml += `<tr>
             <td style="font-weight: 600; color: #3b82f6;">${row.recordId}</td>
             <td style="font-weight: 500; color: #334155; line-height: 1.6;">${formattedTitle}</td>
             <td>${row.creator}</td><td>${row.unit}</td><td>${row.dateCreated}</td><td>${row.recordType}</td><td>${row.confLevel}</td>
             <td>${storageDisplay}</td><td>${physicalDisplay}</td><td>${row.format}</td>
             <td style="text-align: center;"><span class="badge ${badgeClass}">${displayStatus}</span></td>
-            <td class="sticky-col">
-              <button class="btn-icon" style="color: #64748b;" title="Kelola Hak Akses" onclick="openPermissionModal('${row.recordId}', '${row.storageLoc}')"><span class="material-icons">admin_panel_settings</span></button>
+            <td class="sticky-col" style="white-space: nowrap;">
+              <!-- Masukkan variabel tombol dinamis di sini -->
+              ${permissionBtn}
               <button class="btn-icon edit" onclick="openArsipModal(${datas})"><span class="material-icons">edit</span></button>
               <button class="btn-icon delete" onclick="triggerDeleteArsipModal(${datas})"><span class="material-icons">delete</span></button>
             </td>
@@ -1411,11 +1427,13 @@
       if (formatVal === 'Fisik' || formatVal === 'Hybrid') {
         const rackVal = document.getElementById('a_rack').value.trim();
         const boxVal = document.getElementById('a_box').value.trim();
+        const pageVal = document.getElementById('a_physicalPage').value.trim(); // Tarik nilai Halaman Fisik
         
-        if (!rackVal || !boxVal) {
-          showToast("Rak dan Boks WAJIB diisi untuk format Fisik/Hybrid!", "error");
+        if (!rackVal || !boxVal || !pageVal) {
+          showToast("Rak, Boks, dan Nomor Halaman Fisik WAJIB diisi untuk format Fisik/Hybrid!", "error");
           if (!rackVal) document.getElementById('a_rack').classList.add('error-border');
           if (!boxVal) document.getElementById('a_box').classList.add('error-border');
+          if (!pageVal) document.getElementById('a_physicalPage').classList.add('error-border');
           return; // Hentikan proses simpan
         }
       }
@@ -1484,29 +1502,46 @@
         reader.onload = function(e) { 
           dataObj.fileData = { fileName: file.name, mimeType: file.type, base64: e.target.result.split(',')[1] }; 
           executeArsipServerCall(dataObj, optRow.rowId); 
+          
+          // BERSIHKAN FORM SETELAH FILE SELESAI DIBACA
+          allFieldsToClear.forEach(id => {
+            if (document.getElementById(id)) document.getElementById(id).value = '';
+          });
+          document.getElementById('a_businessActivity_text').innerText = '-- Pilih Klasifikasi --';
         };
         reader.readAsDataURL(file);
       } else { 
         executeArsipServerCall(dataObj, optRow.rowId); 
+        // BERSIHKAN FORM JIKA TIDAK ADA FILE
+        allFieldsToClear.forEach(id => {
+          if (document.getElementById(id)) document.getElementById(id).value = '';
+        });
+        document.getElementById('a_businessActivity_text').innerText = '-- Pilih Klasifikasi --';
       }
     }
 
     function executeArsipServerCall(dataObj, tempId) {
-      google.script.run.withSuccessHandler((res) => {
-        // AKTIFKAN KEMBALI TOMBOL SETELAH SELESAI
-        setBtnLoading('addArsipBtn', false, 'Simpan Rekaman');
-
-        if (res.success === false) { 
-          showToast(res.message, "error"); 
+      google.script.run
+        .withSuccessHandler((res) => {
+          setBtnLoading('addArsipBtn', false, 'Simpan Rekaman');
+          if (res.success === false) { 
+            showToast(res.message, "error"); 
+            masterArsipData = masterArsipData.filter(r => r.rowId !== tempId); 
+            updateArsipRows(); 
+          } else { 
+            showToast("Arsip Berhasil Disimpan!", "success"); 
+            recordTrace(`Tambah Arsip: ${dataObj.recordId}`); 
+            silentRefreshArsip(); 
+          }
+        })
+        .withFailureHandler((error) => {
+          // Menangkap error server agar UI tidak macet
+          setBtnLoading('addArsipBtn', false, 'Simpan Rekaman');
+          showToast("Koneksi server terputus: " + error.message, "error");
           masterArsipData = masterArsipData.filter(r => r.rowId !== tempId); 
           updateArsipRows(); 
-        } else { 
-          console.log(res);
-          showToast("Arsip Berhasil Disimpan!", "success"); 
-          recordTrace(`Tambah Arsip: ${dataObj.recordId}`); 
-          silentRefreshArsip(); 
-        }
-      }).processArsipForm(dataObj);
+        })
+        .processArsipForm(dataObj);
     }
 
     function openArsipModal(data) {
@@ -1522,7 +1557,8 @@
       document.getElementById('e_dateReceived').value = data.dateReceived; 
       document.getElementById('e_recordType').value = data.recordType;
       document.getElementById('e_confLevel').value = data.confLevel; 
-      document.getElementById('e_format').value = data.format; 
+      
+      // HAPUS baris e_format dari sini, karena kita akan mengaturnya di bawah
       document.getElementById('e_status').value = data.status;
       
       document.getElementById('e_storageLoc').value = ''; 
@@ -1532,21 +1568,23 @@
       document.getElementById('e_pageCount').value = data.pageCount || '';
       document.getElementById('e_physicalPage').value = data.physicalPage || '';
 
-      toggleFormatFields('e');
-
       // --- LOGIKA DROPDOWN FORMAT DINAMIS ---
-    const formatSelect = document.getElementById('e_format');
-    formatSelect.innerHTML = ''; // Kosongkan opsi bawaan HTML
-    
-    // 1. Selalu tambahkan format aslinya saat ini
-    formatSelect.add(new Option(data.format, data.format));
-    
-    // 2. Jika format saat ini BUKAN Hybrid, berikan opsi untuk "Upgrade" ke Hybrid
-    if (data.format !== 'Hybrid') {
-      formatSelect.add(new Option('Hybrid', 'Hybrid'));
-    }
-    
-    formatSelect.value = data.format; // Tetapkan pilihan ke format asli
+      const formatSelect = document.getElementById('e_format');
+      formatSelect.innerHTML = ''; // Kosongkan opsi bawaan HTML
+      
+      // 1. Selalu tambahkan format aslinya saat ini
+      formatSelect.add(new Option(data.format, data.format));
+      
+      // 2. Jika format saat ini BUKAN Hybrid, berikan opsi untuk "Upgrade" ke Hybrid
+      if (data.format !== 'Hybrid') {
+        formatSelect.add(new Option('Hybrid', 'Hybrid'));
+      }
+      
+      // 3. SETEL NILAI SETELAH OPSI DIBUAT
+      formatSelect.value = data.format; 
+      
+      // 4. PANGGIL TOGGLE DI PALING AKHIR (Setelah nilai sukses disetel ke Hybrid)
+      toggleFormatFields('e');
       
       const linkDiv = document.getElementById('currentFileLink');
       if (data.storageLoc && data.storageLoc.includes('http')) {
@@ -1571,11 +1609,13 @@
       if (formatVal === 'Fisik' || formatVal === 'Hybrid') {
         const rackVal = document.getElementById('e_rack').value.trim();
         const boxVal = document.getElementById('e_box').value.trim();
+        const pageVal = document.getElementById('e_physicalPage').value.trim(); // Tarik nilai Halaman Fisik
         
-        if (!rackVal || !boxVal) {
-          showToast("Rak dan Boks WAJIB diisi untuk format Fisik/Hybrid!", "error");
+        if (!rackVal || !boxVal || !pageVal) {
+          showToast("Rak, Boks, dan Nomor Halaman Fisik WAJIB diisi untuk format Fisik/Hybrid!", "error");
           if (!rackVal) document.getElementById('e_rack').classList.add('error-border');
           if (!boxVal) document.getElementById('e_box').classList.add('error-border');
+          if (!pageVal) document.getElementById('e_physicalPage').classList.add('error-border');
           return; // Hentikan proses simpan
         }
       }
