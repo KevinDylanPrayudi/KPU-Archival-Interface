@@ -202,10 +202,6 @@ function processArsipForm(dataObj) {
       }
       
       uploadedFileUrl = newFile.getUrl();
-      // BARIS BARU: Otomatis mengubah akses file Google Drive menjadi "Siapa saja yang memiliki link (Viewer)"
-      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      
-      uploadedFileUrl = newFile.getUrl(); 
     } catch (error) { return { success: false, message: "Drive Error: " + error.message }; }
   } else if (dataObj.manualLink && dataObj.manualLink.trim() !== "") {
     uploadedFileUrl = dataObj.manualLink.trim();
@@ -329,35 +325,57 @@ function editArsipForm(dataObj, row) {
 }
 
 // 3. HAPUS ARSIP (Sapu bersih juga hak aksesnya)
-function deleteArsipRow(rowId, recordId) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Arsip");
-  
-  // A. Hapus Arsip Utama
-  if (sheet) {
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] == rowId || data[i][1] == recordId) { 
-        sheet.deleteRow(i + 1);
-        break;
+// --- FUNGSI HAPUS TOTAL (Arsip, Permission, & File Drive) ---
+function deleteArsipRow(rowId, recordId, fileUrl) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var successMsg = "Berhasil dihapus dari database.";
+
+    // 1. HAPUS FILE DI GOOGLE DRIVE (Pindahkan ke Sampah/Trash)
+    if (fileUrl && fileUrl.indexOf("drive.google.com") !== -1) {
+      try {
+        var match = fileUrl.match(/[-\w]{25,}/);
+        if (match && match.length > 0) {
+          DriveApp.getFileById(match[0]).setTrashed(true); 
+          successMsg = "Arsip dan File Drive berhasil dipindahkan ke sampah.";
+        }
+      } catch (e) {
+        Logger.log("Gagal membuang file Drive (mungkin sudah terhapus): " + e.message);
       }
     }
-  }
-  
-  // B. PERBAIKAN: Hapus semua riwayat hak akses terkait Arsip ini
-  if (recordId) {
-    var permSheet = ss.getSheetByName("File_Permissions");
-    if (permSheet) {
-      var permData = permSheet.getDataRange().getValues();
-      // Hapus dari bawah ke atas agar index baris tidak berantakan
-      for (var j = permData.length - 1; j >= 1; j--) {
-        if (permData[j][0] === recordId) {
-          permSheet.deleteRow(j + 1);
+
+    // 2. HAPUS DARI SHEET 'Arsip'
+    var sheet = ss.getSheetByName("Arsip");
+    if (sheet && recordId) {
+      var data = sheet.getDataRange().getValues();
+      // PERBAIKAN: Cari berdasarkan recordId tepat di Kolom A (index 0)
+      // Pencarian mundur agar indeks baris tidak berantakan saat dihapus
+      for (var i = data.length - 1; i >= 1; i--) { 
+        if (String(data[i][0]).trim() === String(recordId).trim()) { 
+          sheet.deleteRow(i + 1);
+          break; // Hentikan pencarian setelah ketemu
         }
       }
     }
+    
+    // 3. HAPUS DARI SHEET 'File_Permissions'
+    if (recordId) {
+      var permSheet = ss.getSheetByName("File_Permissions");
+      if (permSheet) {
+        var permData = permSheet.getDataRange().getValues();
+        // Pencarian mundur untuk menyapu bersih semua riwayat akses
+        for (var j = permData.length - 1; j >= 1; j--) {
+          if (String(permData[j][0]).trim() === String(recordId).trim()) {
+            permSheet.deleteRow(j + 1);
+          }
+        }
+      }
+    }
+    
+    return { success: true, message: successMsg };
+  } catch (err) {
+    return { success: false, message: "Gagal menghapus: " + err.message };
   }
-  return "Success";
 }
 
 // ==========================================
