@@ -1688,17 +1688,34 @@
       const targetRow = document.getElementById('hiddenArsipRowId').value; 
       const recId = document.getElementById('hiddenArsipRecordId').value; 
       
-      closeModal('deleteArsipModal');
-      showToast("Menghapus rekaman arsip...", "info");
+      // Ambil Link Drive dari data yang sedang aktif sebelum kita membuangnya dari layar
+      const arsipToDelete = masterArsipData.find(r => r.rowId == targetRow);
+      const fileUrl = arsipToDelete ? arsipToDelete.storageLoc : "";
 
+      closeModal('deleteArsipModal');
+      showToast("Menghapus rekaman, izin akses, & file Drive...", "info");
+
+      // Optimistic update: hilangkan dari layar seketika
       masterArsipData = masterArsipData.filter(r => r.rowId != targetRow);
       updateArsipRows();
       
-      google.script.run.withSuccessHandler(() => { 
-        showToast("Arsip Dihapus!", "success");
-        recordTrace(`Hapus Arsip: ${recId}`); 
-        silentRefreshArsip(); 
-      }).deleteArsipRow(targetRow); 
+      google.script.run
+        .withSuccessHandler((res) => { 
+          if (res && res.success === false) {
+            showToast(res.message, "error");
+            silentRefreshArsip(); // Kembalikan UI jika gagal di server
+          } else {
+            showToast(res ? res.message : "Arsip Terhapus Bersih!", "success");
+            recordTrace(`Hapus Arsip: ${recId}`); 
+            silentRefreshArsip(); 
+          }
+        })
+        .withFailureHandler((error) => {
+          showToast("Koneksi server gagal: " + error.message, "error");
+          silentRefreshArsip();
+        })
+        // KIRIM 3 DATA KE SERVER: Row ID, Record ID, dan Link URL File
+        .deleteArsipRow(targetRow, recId, fileUrl); 
     }
 
     // ==========================================
