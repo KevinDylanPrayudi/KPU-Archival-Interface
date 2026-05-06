@@ -264,7 +264,14 @@ function editArsipForm(dataObj, row) {
     let isOldFileDrive = oldFileUrl && oldFileUrl.toString().includes("drive.google.com");
 
     if (dataObj.fileData && dataObj.fileData.base64) {
+
+      const match = finalFileUrl.match(/[-\w]{25,}/);
+      if (match) { try { DriveApp.getFileById(match[0]).setTrashed(true); } catch(e){} }
+
+      if (dataObj.fileData.fileName.lastIndexOf(".") !== -1) ext = dataObj.fileData.fileName.substring(dataObj.fileData.fileName.lastIndexOf("."));
+
       var blob = Utilities.newBlob(Utilities.base64Decode(dataObj.fileData.base64), dataObj.fileData.mimeType, cleanRecordId + ext);
+      
       var newFile = targetFolder.createFile(blob);
       
       // LOGIKA KEAMANAN: Cek tingkat kerahasiaan
@@ -273,14 +280,43 @@ function editArsipForm(dataObj, row) {
       } else {
         newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
       }
+
+      if (cleanRecordId) {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      var permSheet = ss.getSheetByName("File_Permissions");
+      if (permSheet) {
+        var permData = permSheet.getDataRange().getValues();
+        // Pencarian mundur untuk menyapu bersih semua riwayat akses
+        for (var j = permData.length - 1; j >= 1; j--) {
+          if (String(permData[j][0]).trim() === String(cleanRecordId).trim()) {
+            permSheet.deleteRow(j + 1);
+          }
+        }
+      }
+    }
       
       finalFileUrl = newFile.getUrl();
       
     } else if (dataObj.manualLink && dataObj.manualLink.trim() !== "") {
       if (isOldFileDrive && dataObj.manualLink !== oldFileUrl) {
-        const match = oldFileUrl.match(/[-\w]{25,}/);
+        const match = finalFileUrl.match(/[-\w]{25,}/);
         if (match) { try { DriveApp.getFileById(match[0]).setTrashed(true); } catch(e){} }
       }
+
+      if (cleanRecordId) {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        var permSheet = ss.getSheetByName("File_Permissions");
+        if (permSheet) {
+          var permData = permSheet.getDataRange().getValues();
+          // Pencarian mundur untuk menyapu bersih semua riwayat akses
+          for (var j = permData.length - 1; j >= 1; j--) {
+            if (String(permData[j][0]).trim() === String(cleanRecordId).trim()) {
+              permSheet.deleteRow(j + 1);
+            }
+          }
+        }
+      }
+
       finalFileUrl = dataObj.manualLink.trim();
       
     } else {
@@ -360,6 +396,7 @@ function deleteArsipRow(rowId, recordId, fileUrl) {
     
     // 3. HAPUS DARI SHEET 'File_Permissions'
     if (recordId) {
+      
       var permSheet = ss.getSheetByName("File_Permissions");
       if (permSheet) {
         var permData = permSheet.getDataRange().getValues();
