@@ -73,6 +73,18 @@ function setupDatabaseInit() {
     Logger.log("⚠️ Sheet 'Trace' sudah ada.");
   }
   
+  // 5. Setup Sheet File_Permissions (Queue System)
+  let sheetPerms = ss.getSheetByName("File_Permissions");
+  if (!sheetPerms) {
+    sheetPerms = ss.insertSheet("File_Permissions");
+    sheetPerms.appendRow(["Record ID", "File URL", "Email", "Action", "Status", "Timestamp"]);
+    sheetPerms.getRange("A1:F1").setFontWeight("bold");
+    sheetPerms.setFrozenRows(1);
+    Logger.log("✅ Sheet 'File_Permissions' berhasil dibuat.");
+  } else {
+    Logger.log("⚠️ Sheet 'File_Permissions' sudah ada.");
+  }
+  
   // Hapus Sheet "Sheet1" bawaan Google jika masih ada dan kosong
   let sheetBawaan = ss.getSheetByName("Sheet1");
   if (sheetBawaan && ss.getSheets().length > 1) {
@@ -81,4 +93,95 @@ function setupDatabaseInit() {
   }
 
   Logger.log("🎉 SETUP DATABASE SELESAI! Semua struktur tabel siap digunakan.");
+}
+
+/**
+ * Menambahkan kolom "Setup" di header terakhir pada semua sheet.
+ */
+function addSetupColumnToAllSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ss.getSheets();
+  const columnName = "Setup"; 
+
+  let addedCount = 0;
+
+  sheets.forEach(sheet => {
+    const lastCol = sheet.getLastColumn();
+    
+    // Jika sheet kosong sama sekali
+    if (lastCol === 0) {
+      sheet.getRange(1, 1).setValue(columnName);
+      addedCount++;
+      return;
+    }
+    
+    // Cek header yang sudah ada untuk mencegah duplikasi
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    if (!headers.includes(columnName)) {
+      sheet.getRange(1, lastCol + 1).setValue(columnName);
+      addedCount++;
+    }
+  });
+
+  Logger.log(`Selesai. Kolom '${columnName}' berhasil ditambahkan pada ${addedCount} sheet.`);
+}
+
+function addSetupColumnToEdge() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ss.getSheets();
+  
+  sheets.forEach(sheet => {
+    const lastCol = sheet.getLastColumn();
+    // Expand to the edge (last column + 1)
+    if (lastCol === 0) {
+      sheet.getRange(1, 1).setValue("Setup");
+    } else {
+      const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      if (!headers.includes("Setup")) {
+        sheet.getRange(1, lastCol + 1).setValue("Setup");
+        // Optional: formatting the new edge column
+        sheet.getRange(1, lastCol + 1).setFontWeight("bold").setBackground("#f1f5f9");
+      }
+    }
+  });
+  Logger.log("Kolom 'Setup' berhasil ditambahkan di ujung kanan (edge) setiap sheet.");
+}
+
+// ==========================================
+// 🛠️ DATABASE EXPANSION TO EDGE
+// ==========================================
+function expandDatabaseToEdge() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ss.getSheets();
+  const edgeColumnName = "Setup"; 
+
+  let modifiedSheets = [];
+
+  sheets.forEach(sheet => {
+    const lastCol = sheet.getLastColumn();
+    
+    // Jika sheet kosong sama sekali
+    if (lastCol === 0) {
+      sheet.getRange(1, 1).setValue(edgeColumnName);
+      sheet.getRange(1, 1).setFontWeight("bold").setBackground("#e2e8f0");
+      modifiedSheets.push(sheet.getName());
+      return;
+    }
+    
+    // Cek header untuk mencegah duplikasi jika skrip dijalankan 2x
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    if (!headers.includes(edgeColumnName)) {
+      // Tambahkan di ujung kanan (Edge + 1)
+      const edgeRange = sheet.getRange(1, lastCol + 1);
+      edgeRange.setValue(edgeColumnName);
+      edgeRange.setFontWeight("bold").setBackground("#e2e8f0");
+      modifiedSheets.push(sheet.getName());
+    }
+  });
+
+  if (modifiedSheets.length > 0) {
+    Logger.log("✅ Sukses: Kolom 'Setup' ditambahkan di batas Edge pada sheet: " + modifiedSheets.join(", "));
+  } else {
+    Logger.log("⚠️ Info: Semua sheet sudah memiliki kolom 'Setup' di batas Edge.");
+  }
 }
